@@ -71,6 +71,7 @@
   }
   .banner a { color: inherit; font-weight: 700; }
   .filters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  #filters { padding-bottom: 6px; }
   .filters::-webkit-scrollbar { display: none; }
   .fchip {
     flex-shrink: 0; border: 1px solid var(--line); background: var(--card); color: var(--ink);
@@ -141,6 +142,7 @@
 <main>
   <div class="banner" id="banner"></div>
   <div class="filters" id="filters"></div>
+  <div class="filters" id="filters-people"></div>
   <div id="list"></div>
   <div class="stamp" id="stamp"></div>
 </main>
@@ -163,6 +165,23 @@
     }
     return NEUTRAL;
   }
+  // School / organization groupings for the filter tabs — first match wins.
+  var SCHOOLS = [
+    { re: /legacy/i,                        label: "Boston Legacy FC" },
+    { re: /northeastern|husk/i,             label: "Northeastern" },
+    { re: /rhode\s*island|rifc/i,           label: "Rhode Island FC" },
+    { re: /boston\s*college|\bbc\b|eagle/i, label: "Boston College" }
+  ];
+  function schoolOf(team) {
+    for (var i = 0; i < SCHOOLS.length; i++) {
+      if (SCHOOLS[i].re.test(team)) return SCHOOLS[i].label;
+    }
+    return team;
+  }
+
+  // Crew names always shown as tappable filter chips, even before they're assigned.
+  var ROSTER = ["Garrett", "Adrian", "Kadden", "Matt", "Anthony"];
+
   var EDIT_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/edit";
   var CSV_URL  = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv";
 
@@ -313,52 +332,56 @@
       return 0;
     });
 
-    // hide past days older than yesterday
+    // hide games the day after their date passes
     rows = rows.filter(function (r) {
       if (!r._d) return true;
-      return (today - r._d) / 86400000 <= 1;
+      return (today - r._d) / 86400000 <= 0;
     });
 
-    // team + person filter chips
-    var teams = {}, people = {};
+    // school filter chips (top row) + crew name chips (second row)
+    var schools = {}, people = {};
     rows.forEach(function (r) {
-      if (r.team) teams[r.team] = 1;
+      if (r.team) schools[schoolOf(r.team)] = 1;
       splitCrew(r.who).forEach(function (p) { people[p] = 1; });
     });
-    var teamNames = Object.keys(teams).sort();
-    var names = Object.keys(people).sort();
+    var schoolNames = Object.keys(schools).sort();
     var fl = document.getElementById("filters");
     fl.innerHTML = "";
-    if (teamNames.length || names.length) {
-      var all = document.createElement("button");
-      all.className = "fchip" + (state.team === null && state.person === null ? " on" : "");
-      all.textContent = "All";
-      all.onclick = function () { state.team = null; state.person = null; render(); };
-      fl.appendChild(all);
-      teamNames.forEach(function (t) {
-        var c = teamColor(t);
-        var b = document.createElement("button");
-        b.className = "fchip";
-        b.textContent = t;
-        if (state.team === t) {
-          b.style.background = c.bg; b.style.borderColor = c.bg; b.style.color = c.fg;
-        } else {
-          b.style.borderColor = c.bg; b.style.color = c.bg;
-        }
-        b.onclick = function () { state.team = (state.team === t ? null : t); render(); };
-        fl.appendChild(b);
-      });
-      names.forEach(function (n) {
-        var b = document.createElement("button");
-        b.className = "fchip" + (state.person === n ? " on" : "");
-        b.textContent = n;
-        b.onclick = function () { state.person = (state.person === n ? null : n); render(); };
-        fl.appendChild(b);
-      });
-    }
+    var all = document.createElement("button");
+    all.className = "fchip" + (state.team === null && state.person === null ? " on" : "");
+    all.textContent = "All";
+    all.onclick = function () { state.team = null; state.person = null; render(); };
+    fl.appendChild(all);
+    schoolNames.forEach(function (t) {
+      var c = teamColor(t);
+      var b = document.createElement("button");
+      b.className = "fchip";
+      b.textContent = t;
+      if (state.team === t) {
+        b.style.background = c.bg; b.style.borderColor = c.bg; b.style.color = c.fg;
+      } else {
+        b.style.borderColor = c.bg; b.style.color = c.bg;
+      }
+      b.onclick = function () { state.team = (state.team === t ? null : t); render(); };
+      fl.appendChild(b);
+    });
+    // crew row: roster names always shown, plus any extra names found in the data
+    var names = ROSTER.slice();
+    Object.keys(people).sort().forEach(function (n) {
+      if (names.indexOf(n) === -1) names.push(n);
+    });
+    var pf = document.getElementById("filters-people");
+    pf.innerHTML = "";
+    names.forEach(function (n) {
+      var b = document.createElement("button");
+      b.className = "fchip" + (state.person === n ? " on" : "");
+      b.textContent = n;
+      b.onclick = function () { state.person = (state.person === n ? null : n); render(); };
+      pf.appendChild(b);
+    });
 
     if (state.team) {
-      rows = rows.filter(function (r) { return r.team === state.team; });
+      rows = rows.filter(function (r) { return schoolOf(r.team) === state.team; });
     }
     if (state.person) {
       rows = rows.filter(function (r) { return splitCrew(r.who).indexOf(state.person) !== -1; });
