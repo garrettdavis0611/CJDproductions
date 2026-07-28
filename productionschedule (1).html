@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#111827">
+<title>Production Schedule</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --ink: #111827;
+    --ink-soft: #6b7280;
+    --line: #e5e7eb;
+    --accent: #2563eb;
+    --accent-ink: #ffffff;
+    --today: #2563eb;
+    --chip-bg: #eef2ff;
+    --chip-ink: #3730a3;
+    --warn-bg: #fffbeb;
+    --warn-ink: #92400e;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b0f17;
+      --card: #151b26;
+      --ink: #f3f4f6;
+      --ink-soft: #9ca3af;
+      --line: #262f3f;
+      --accent: #3b82f6;
+      --chip-bg: #1e2740;
+      --chip-ink: #c7d2fe;
+      --warn-bg: #2a2210;
+      --warn-ink: #fbbf24;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px;
+  }
+  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+  .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn {
+    appearance: none; border: 1px solid var(--line); background: var(--card);
+    color: var(--ink); border-radius: 10px; padding: 9px 13px;
+    font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px; line-height: 1;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn:active { transform: scale(0.97); }
+  main { max-width: 760px; margin: 0 auto; padding: 14px 14px 0; }
+  .banner {
+    background: var(--warn-bg); color: var(--warn-ink);
+    border-radius: var(--radius); padding: 12px 14px; font-size: 13.5px;
+    margin-bottom: 12px; display: none; line-height: 1.45;
+  }
+  .banner a { color: inherit; font-weight: 700; }
+  .filters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 12px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .fchip {
+    flex-shrink: 0; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 999px; padding: 7px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .day-card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+  }
+  .day-card.today { border-color: var(--today); box-shadow: 0 0 0 1px var(--today); }
+  .day-head {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 12px 14px 0;
+  }
+  .day-name { font-size: 15px; font-weight: 700; }
+  .day-date { font-size: 13px; color: var(--ink-soft); }
+  .today-tag {
+    margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+    color: var(--accent-ink); background: var(--today); border-radius: 6px; padding: 3px 8px;
+    text-transform: uppercase;
+  }
+  .shift { padding: 10px 14px 14px; border-left: 4px solid transparent; }
+  .shift + .shift { border-top: 1px dashed var(--line); }
+  .team-badge {
+    display: inline-block; border-radius: 6px; padding: 3px 9px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .ev-title { font-size: 16.5px; font-weight: 700; letter-spacing: -0.01em; }
+  .ev-loc { font-size: 13.5px; color: var(--ink-soft); margin-top: 2px; }
+  .times { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .time-box {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    padding: 7px 11px; min-width: 86px;
+  }
+  .time-box .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); }
+  .time-box .val { font-size: 15px; font-weight: 700; margin-top: 1px; }
+  .time-box.call .val { color: var(--accent); }
+  .crew { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .crew-chip {
+    background: var(--chip-bg); color: var(--chip-ink);
+    border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 600;
+  }
+  .notes { margin-top: 10px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+  .off {
+    padding: 10px 14px 14px; font-size: 14px; color: var(--ink-soft);
+  }
+  .empty { text-align: center; color: var(--ink-soft); padding: 48px 20px; font-size: 15px; line-height: 1.5; }
+  .stamp { text-align: center; font-size: 12px; color: var(--ink-soft); padding: 16px 0 8px; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--accent-ink); border-top-color: transparent; border-radius: 50%; animation: sp 0.7s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-row">
+    <div>
+      <h1>Production Schedule</h1>
+      <div class="sub" id="range-sub">Loading…</div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="refresh-btn" title="Refresh">↻</button>
+      <a class="btn primary" id="edit-btn" href="#" target="_blank" rel="noopener">Edit</a>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="banner" id="banner"></div>
+  <div class="filters" id="filters"></div>
+  <div id="list"></div>
+  <div class="stamp" id="stamp"></div>
+</main>
+<script>
+(function () {
+  // ─── CONFIG ────────────────────────────────────────────────────────────────
+  var SHEET_ID = "1f87gUR8wuRIukrP7muhQxP0tVa3Ja2RR9eg7xZoSZjk";
+
+  // Team colors — first matching rule wins. Add teams by adding a line.
+  var TEAM_COLORS = [
+    { re: /legacy/i,                       bg: "#00843D", fg: "#ffffff" }, // Boston Legacy FC — green
+    { re: /northeastern|husk/i,            bg: "#C8102E", fg: "#ffffff" }, // Northeastern — red
+    { re: /rhode\s*island|rifc/i,          bg: "#1D4ED8", fg: "#ffffff" }, // Rhode Island FC — blue
+    { re: /boston\s*college|\bbc\b|eagle/i, bg: "#B7962B", fg: "#241d00" } // BC — gold
+  ];
+  var NEUTRAL = { bg: "#6b7280", fg: "#ffffff" };
+  function teamColor(team) {
+    for (var i = 0; i < TEAM_COLORS.length; i++) {
+      if (TEAM_COLORS[i].re.test(team)) return TEAM_COLORS[i];
+    }
+    return NEUTRAL;
+  }
+  var EDIT_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/edit";
+  var CSV_URL  = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv";
+
+  // Snapshot used only if the live sheet can't be reached from this viewer.
+  var FALLBACK_CSV =
+    'Date,Day,Team,Event / Job,Location,Call Time,Start Time,End Time,Who\'s Working,Notes\n' +
+    '2026-08-08,Saturday,Rhode Island FC,vs Colorado Springs Switchbacks FC,Centreville Bank Stadium,5:30 PM,7:30 PM,,,USL Championship\n' +
+    '2026-08-09,Sunday,Boston Legacy FC,vs Portland Thorns FC,Centreville Bank Stadium,2:00 PM,4:00 PM,,,NWSL\n' +
+    '2026-08-22,Saturday,BC Volleyball,vs Providence,Margot Connell Recreation Center,3:00 PM,5:00 PM,,,Exhibition\n' +
+    '2026-08-22,Saturday,Rhode Island FC,vs Monterey Bay FC,Centreville Bank Stadium,5:30 PM,7:30 PM,,,USL Championship\n' +
+    '2026-08-28,Friday,BC Volleyball,vs Air Force,Margot Connell Recreation Center,5:00 PM,7:00 PM,,,Chestnut Hill Invite\n' +
+    '2026-08-30,Sunday,BC Volleyball,vs Quinnipiac,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,Chestnut Hill Invite\n' +
+    '2026-09-03,Thursday,BC Volleyball,vs Stonehill,Margot Connell Recreation Center,5:00 PM,7:00 PM,,,Boston College Invitational\n' +
+    '2026-09-04,Friday,BC Volleyball,vs Bucknell,Margot Connell Recreation Center,5:00 PM,7:00 PM,,,Boston College Invitational\n' +
+    '2026-09-04,Friday,Northeastern Volleyball,vs Holy Cross,Cabot Center,4:00 PM,6:00 PM,,,\n' +
+    '2026-09-05,Saturday,BC Volleyball,vs UNH,Margot Connell Recreation Center,12:00 PM,2:00 PM,,,Boston College Invitational\n' +
+    '2026-09-05,Saturday,Northeastern Volleyball,vs Fairfield,Cabot Center,3:00 PM,5:00 PM,,,\n' +
+    '2026-09-05,Saturday,Rhode Island FC,vs Louisville City FC,Centreville Bank Stadium,5:30 PM,7:30 PM,,,USL Championship\n' +
+    '2026-09-06,Sunday,Northeastern Volleyball,vs Harvard,Cabot Center,12:00 PM,2:00 PM,,,\n' +
+    '2026-09-09,Wednesday,BC Volleyball,vs Vanderbilt,Margot Connell Recreation Center,TBD,TBD,,,"Showdown at the Net — game time TBD, check bceagles.com"\n' +
+    '2026-09-11,Friday,BC Football,vs Rutgers,Alumni Stadium,5:30 PM,7:30 PM,,,Season home opener\n' +
+    '2026-09-19,Saturday,BC Football,vs Maine,Alumni Stadium,12:00 PM,2:00 PM,,,\n' +
+    '2026-09-20,Sunday,Boston Legacy FC,vs Houston Dash,Centreville Bank Stadium,12:00 PM,2:00 PM,,,NWSL\n' +
+    '2026-09-25,Friday,BC Volleyball,vs Notre Dame,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,ACC\n' +
+    '2026-09-25,Friday,Northeastern Volleyball,vs North Carolina A&T,Cabot Center,4:00 PM,6:00 PM,,,CAA\n' +
+    '2026-09-26,Saturday,BC Football,vs Virginia Tech,Alumni Stadium,TBD,TBD,,,"Kickoff TBD — TV window, check bceagles.com"\n' +
+    '2026-09-26,Saturday,Northeastern Volleyball,vs North Carolina A&T,Cabot Center,12:00 PM,2:00 PM,,,CAA\n' +
+    '2026-09-27,Sunday,BC Volleyball,vs Louisville,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,ACC\n' +
+    '2026-09-30,Wednesday,Rhode Island FC,vs Indy Eleven,Centreville Bank Stadium,5:30 PM,7:30 PM,,,USL Championship\n' +
+    '2026-10-02,Friday,BC Volleyball,vs Pitt,Margot Connell Recreation Center,5:00 PM,7:00 PM,,,ACC\n' +
+    '2026-10-04,Sunday,BC Volleyball,vs SMU,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,ACC\n' +
+    '2026-10-09,Friday,Northeastern Volleyball,vs Elon,Cabot Center,4:00 PM,6:00 PM,,,CAA\n' +
+    '2026-10-10,Saturday,Northeastern Volleyball,vs Elon,Cabot Center,11:00 AM,1:00 PM,,,CAA\n' +
+    '2026-10-14,Wednesday,Rhode Island FC,vs Loudoun United FC,Centreville Bank Stadium,5:30 PM,7:30 PM,,,USL Championship — rescheduled home opener\n' +
+    '2026-10-17,Saturday,BC Football,vs Pittsburgh,Alumni Stadium,TBD,TBD,,,"Kickoff TBD — TV window, check bceagles.com"\n' +
+    '2026-10-17,Saturday,Rhode Island FC,vs Pittsburgh Riverhounds SC,Centreville Bank Stadium,5:30 PM,7:30 PM,,,USL Championship\n' +
+    '2026-10-23,Friday,BC Volleyball,vs Virginia Tech,Margot Connell Recreation Center,5:00 PM,7:00 PM,,,ACC\n' +
+    '2026-10-24,Saturday,Northeastern Volleyball,vs Stony Brook,Cabot Center,12:00 PM,2:00 PM,,,CAA\n' +
+    '2026-10-25,Sunday,BC Volleyball,vs Virginia,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,ACC\n' +
+    '2026-10-25,Sunday,Northeastern Volleyball,vs Stony Brook,Cabot Center,12:00 PM,2:00 PM,,,CAA\n' +
+    '2026-11-07,Saturday,BC Football,vs Florida State,Alumni Stadium,TBD,TBD,,,"Kickoff TBD — TV window, check bceagles.com"\n' +
+    '2026-11-08,Sunday,BC Volleyball,vs Syracuse,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,ACC\n' +
+    '2026-11-13,Friday,BC Volleyball,vs Florida State,Margot Connell Recreation Center,5:00 PM,7:00 PM,,,ACC\n' +
+    '2026-11-14,Saturday,Northeastern Volleyball,vs William & Mary,Cabot Center,12:00 PM,2:00 PM,,,CAA\n' +
+    '2026-11-15,Sunday,BC Volleyball,vs Miami,Margot Connell Recreation Center,10:30 AM,12:30 PM,,,ACC\n' +
+    '2026-11-15,Sunday,Northeastern Volleyball,vs William & Mary,Cabot Center,12:00 PM,2:00 PM,,,CAA\n' +
+    '2026-11-21,Saturday,BC Football,vs Syracuse,Alumni Stadium,TBD,TBD,,,"Kickoff TBD — TV window, check bceagles.com"\n' +
+    '2026-11-28,Saturday,BC Volleyball,vs California,Margot Connell Recreation Center,11:00 AM,1:00 PM,,,ACC — regular season finale\n';
+
+  document.getElementById("edit-btn").href = EDIT_URL;
+
+  var state = { rows: [], person: null, team: null, live: false, fetchedAt: null };
+
+  // ─── CSV PARSER (handles quoted fields) ────────────────────────────────────
+  function parseCSV(text) {
+    var rows = [], row = [], cur = "", inQ = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cur += '"'; i++; } else { inQ = false; }
+        } else cur += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") { row.push(cur); cur = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(cur); cur = "";
+        if (row.some(function (x) { return x.trim() !== ""; })) rows.push(row);
+        row = [];
+      } else cur += c;
+    }
+    row.push(cur);
+    if (row.some(function (x) { return x.trim() !== ""; })) rows.push(row);
+    return rows;
+  }
+
+  function normalizeHeader(h) {
+    return h.toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  // Map flexible header names → fields, so column renames in the sheet still work.
+  function toRecords(rows) {
+    if (!rows.length) return [];
+    var head = rows[0].map(normalizeHeader);
+    function idx() {
+      for (var a = 0; a < arguments.length; a++) {
+        var j = head.indexOf(arguments[a]);
+        if (j !== -1) return j;
+      }
+      return -1;
+    }
+    var iDate = idx("date"), iDay = idx("day"),
+        iTeam = idx("team", "club"),
+        iEv = idx("eventjob", "event", "job", "show"),
+        iLoc = idx("location", "venue"),
+        iCall = idx("calltime", "call"),
+        iStart = idx("starttime", "showtime", "start"),
+        iEnd = idx("endtime", "end", "out"),
+        iWho = idx("whosworking", "crew", "who", "staff", "working"),
+        iNotes = idx("notes", "note"),
+        iCrew = [idx("crew1"), idx("crew2"), idx("crew3"), idx("crew4"), idx("crew5")];
+    var out = [];
+    for (var r = 1; r < rows.length; r++) {
+      var g = function (j) { return j >= 0 && rows[r][j] != null ? String(rows[r][j]).trim() : ""; };
+      var rec = {
+        date: g(iDate), day: g(iDay), team: g(iTeam), event: g(iEv), loc: g(iLoc),
+        call: g(iCall), start: g(iStart), end: g(iEnd),
+        who: g(iWho), notes: g(iNotes)
+      };
+      var crewNames = iCrew.map(g).filter(Boolean);
+      if (crewNames.length) rec.who = rec.who ? rec.who + ", " + crewNames.join(", ") : crewNames.join(", ");
+      if (rec.date || rec.event || rec.who) out.push(rec);
+      }
+    return out;
+  }
+
+  function parseDate(s) {
+    if (!s) return null;
+    var m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (m) { var y = +m[3]; if (y < 100) y += 2000; return new Date(y, +m[1] - 1, +m[2]); }
+    var d = new Date(s);
+    return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmtDate(d) { return MONTHS[d.getMonth()] + " " + d.getDate(); }
+  function sameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+  function splitCrew(s) {
+    return s.split(/[,;\/]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+
+  // ─── RENDER ────────────────────────────────────────────────────────────────
+  function render() {
+    var list = document.getElementById("list");
+    var rows = state.rows.slice();
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+
+    // sort by date; undated rows go last in sheet order
+    rows.forEach(function (r) { r._d = parseDate(r.date); });
+    rows.sort(function (a, b) {
+      if (a._d && b._d) return a._d - b._d;
+      if (a._d) return -1;
+      if (b._d) return 1;
+      return 0;
+    });
+
+    // hide past days older than yesterday
+    rows = rows.filter(function (r) {
+      if (!r._d) return true;
+      return (today - r._d) / 86400000 <= 1;
+    });
+
+    // team + person filter chips
+    var teams = {}, people = {};
+    rows.forEach(function (r) {
+      if (r.team) teams[r.team] = 1;
+      splitCrew(r.who).forEach(function (p) { people[p] = 1; });
+    });
+    var teamNames = Object.keys(teams).sort();
+    var names = Object.keys(people).sort();
+    var fl = document.getElementById("filters");
+    fl.innerHTML = "";
+    if (teamNames.length || names.length) {
+      var all = document.createElement("button");
+      all.className = "fchip" + (state.team === null && state.person === null ? " on" : "");
+      all.textContent = "All";
+      all.onclick = function () { state.team = null; state.person = null; render(); };
+      fl.appendChild(all);
+      teamNames.forEach(function (t) {
+        var c = teamColor(t);
+        var b = document.createElement("button");
+        b.className = "fchip";
+        b.textContent = t;
+        if (state.team === t) {
+          b.style.background = c.bg; b.style.borderColor = c.bg; b.style.color = c.fg;
+        } else {
+          b.style.borderColor = c.bg; b.style.color = c.bg;
+        }
+        b.onclick = function () { state.team = (state.team === t ? null : t); render(); };
+        fl.appendChild(b);
+      });
+      names.forEach(function (n) {
+        var b = document.createElement("button");
+        b.className = "fchip" + (state.person === n ? " on" : "");
+        b.textContent = n;
+        b.onclick = function () { state.person = (state.person === n ? null : n); render(); };
+        fl.appendChild(b);
+      });
+    }
+
+    if (state.team) {
+      rows = rows.filter(function (r) { return r.team === state.team; });
+    }
+    if (state.person) {
+      rows = rows.filter(function (r) { return splitCrew(r.who).indexOf(state.person) !== -1; });
+    }
+
+    // group by date string
+    var groups = [], byKey = {};
+    rows.forEach(function (r) {
+      var key = r._d ? r._d.toDateString() : "nodate-" + (r.date || r.event);
+      if (!byKey[key]) { byKey[key] = { d: r._d, day: r.day, rows: [] }; groups.push(byKey[key]); }
+      byKey[key].rows.push(r);
+    });
+
+    var html = "";
+    groups.forEach(function (gp) {
+      var isToday = sameDay(gp.d, today);
+      var dayName = gp.d ? DAYS[gp.d.getDay()] : (gp.day || "Scheduled");
+      var dateStr = gp.d ? fmtDate(gp.d) : (gp.rows[0].date || "");
+      html += '<div class="day-card' + (isToday ? " today" : "") + '">';
+      html += '<div class="day-head"><span class="day-name">' + esc(dayName) + '</span><span class="day-date">' + esc(dateStr) + "</span>";
+      if (isToday) html += '<span class="today-tag">Today</span>';
+      html += "</div>";
+      gp.rows.forEach(function (r) {
+        if (!r.event && !r.who && !r.call) {
+          html += '<div class="off">Nothing scheduled</div>';
+          return;
+        }
+        var tc = r.team ? teamColor(r.team) : null;
+        html += '<div class="shift"' + (tc ? ' style="border-left-color:' + tc.bg + '"' : "") + ">";
+        if (r.team) html += '<span class="team-badge" style="background:' + tc.bg + ';color:' + tc.fg + '">' + esc(r.team) + "</span>";
+        if (r.event) html += '<div class="ev-title">' + esc(r.event) + "</div>";
+        if (r.loc) html += '<div class="ev-loc">📍 ' + esc(r.loc) + "</div>";
+        var t = "";
+        if (r.call) t += '<div class="time-box call"><div class="lbl">Call</div><div class="val">' + esc(r.call) + "</div></div>";
+        if (r.start) t += '<div class="time-box"><div class="lbl">Start</div><div class="val">' + esc(r.start) + "</div></div>";
+        if (r.end) t += '<div class="time-box"><div class="lbl">End</div><div class="val">' + esc(r.end) + "</div></div>";
+        if (t) html += '<div class="times">' + t + "</div>";
+        var crew = splitCrew(r.who);
+        if (crew.length) {
+          html += '<div class="crew">' + crew.map(function (p) { return '<span class="crew-chip">' + esc(p) + "</span>"; }).join("") + "</div>";
+        }
+        if (r.notes) html += '<div class="notes">' + esc(r.notes) + "</div>";
+        html += "</div>";
+      });
+      html += "</div>";
+    });
+
+    if (!groups.length) {
+      html = '<div class="empty">No upcoming shifts' + (state.person ? " for " + esc(state.person) : "") + '.<br>Tap <b>Edit</b> to add to the schedule.</div>';
+    }
+    list.innerHTML = html;
+
+    var sub = document.getElementById("range-sub");
+    var count = rows.filter(function (r) { return r.event || r.who; }).length;
+    sub.textContent = (state.person ? state.person + " · " : "") + count + (count === 1 ? " shift" : " shifts") + " upcoming";
+
+    document.getElementById("stamp").textContent = state.fetchedAt
+      ? (state.live ? "Live from the schedule sheet · updated " + state.fetchedAt : "Snapshot view · " + state.fetchedAt)
+      : "";
+  }
+
+  function showBanner(msg) {
+    var b = document.getElementById("banner");
+    b.innerHTML = msg;
+    b.style.display = "block";
+  }
+  function hideBanner() { document.getElementById("banner").style.display = "none"; }
+
+  // ─── LOAD ──────────────────────────────────────────────────────────────────
+  function load() {
+    var btn = document.getElementById("refresh-btn");
+    btn.innerHTML = '<span class="spin" style="border-color:var(--ink-soft);border-top-color:transparent"></span>';
+    var done = function () { btn.innerHTML = "↻"; };
+    var stampNow = function () {
+      var n = new Date();
+      var h = n.getHours() % 12 || 12, ap = n.getHours() < 12 ? "AM" : "PM";
+      var mi = ("0" + n.getMinutes()).slice(-2);
+      return h + ":" + mi + " " + ap;
+    };
+    fetch(CSV_URL, { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      })
+      .then(function (text) {
+        if (/<html/i.test(text)) throw new Error("not csv"); // sheet not link-shared yet
+        state.rows = toRecords(parseCSV(text));
+        state.live = true;
+        state.fetchedAt = stampNow();
+        hideBanner();
+        render(); done();
+      })
+      .catch(function () {
+        state.rows = toRecords(parseCSV(FALLBACK_CSV));
+        state.live = false;
+        state.fetchedAt = stampNow();
+        showBanner('Couldn’t reach the live sheet from this viewer — showing a saved snapshot. Make sure the sheet’s sharing is set to “Anyone with the link,” or tap <a href="' + EDIT_URL + '" target="_blank" rel="noopener">Open the schedule sheet</a> for the latest.');
+        render(); done();
+      });
+  }
+
+  document.getElementById("refresh-btn").onclick = load;
+  load();
+})();
+</script>
+</body>
+</html>
