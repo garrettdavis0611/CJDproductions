@@ -147,6 +147,9 @@ async function main() {
     const cl = w.addText("Call " + (s.call || "TBD"));
     cl.font = Font.boldSystemFont(14); cl.textColor = accent;
     w.addSpacer(4);
+    const cw = w.addText("👤 " + (s.crew.length ? s.crew.join(", ") : "Unassigned"));
+    cw.font = Font.mediumSystemFont(10); cw.textColor = soft; cw.lineLimit = 1;
+    w.addSpacer(3);
     const tb = w.addText(s.team.toUpperCase());
     tb.font = Font.semiboldSystemFont(9);
     tb.textColor = new Color(teamColor(s.team));
@@ -167,7 +170,11 @@ async function main() {
       row.addSpacer();
       const cl = row.addText(s.call || "TBD");
       cl.font = Font.boldSystemFont(12); cl.textColor = accent;
-      w.addSpacer(fam === "large" ? 8 : 5);
+      const sub = w.addStack();
+      sub.addSpacer(15);
+      const cw = sub.addText((s.crew.length ? s.crew.join(", ") : "Unassigned") + " · " + s.team);
+      cw.font = Font.mediumSystemFont(10); cw.textColor = soft; cw.lineLimit = 1;
+      w.addSpacer(fam === "large" ? 7 : 4);
     }
     w.addSpacer();
   }
