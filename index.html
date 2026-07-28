@@ -99,6 +99,27 @@
   }
   .fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .seg { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+  .seg-btn { flex: 1; appearance: none; border: 0; background: transparent; color: var(--ink-soft); font-family: var(--body); font-size: 13.5px; font-weight: 700; padding: 8px 0; border-radius: 9px; cursor: pointer; }
+  .seg-btn.on { background: var(--accent); color: var(--accent-ink); }
+  .cal-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-title { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .cal-nav { appearance: none; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: 18px; font-weight: 700; cursor: pointer; line-height: 1; }
+  .cal-nav:active { transform: scale(.94); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding: 4px 0 6px; }
+  .cal-cell { min-height: 46px; border-radius: 10px; border: 1px solid transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; padding-top: 5px; }
+  .cal-cell .cnum { font-size: 13px; font-weight: 600; line-height: 1; }
+  .cal-cell.has { background: var(--bg); border-color: var(--line); cursor: pointer; }
+  .cal-cell.past { opacity: .45; }
+  .cal-cell.today { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cal-cell.sel { background: var(--accent); border-color: var(--accent); }
+  .cal-cell.sel .cnum { color: var(--accent-ink); }
+  .cdots { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; padding: 0 3px; }
+  .cdot { width: 6px; height: 6px; border-radius: 50%; }
+  .cal-hint { text-align: center; color: var(--ink-soft); font-size: 13.5px; padding: 18px 10px 6px; }
+  #cal-day { margin-top: 12px; }
   .month-div {
     display: flex; align-items: center; gap: 12px; margin: 22px 2px 12px;
     font-family: var(--display); font-size: 16px; font-weight: 700;
@@ -185,6 +206,10 @@
 </header>
 <main>
   <div class="banner" id="banner"></div>
+  <div class="seg" id="view-seg">
+    <button class="seg-btn on" id="seg-list">List</button>
+    <button class="seg-btn" id="seg-cal">Calendar</button>
+  </div>
   <div class="filters" id="filters"></div>
   <div class="filters" id="filters-people"></div>
   <div id="list"></div>
@@ -288,7 +313,7 @@
 
   document.getElementById("edit-btn").href = EDIT_URL;
 
-  var state = { rows: [], person: null, team: null, live: false, fetchedAt: null };
+  var state = { rows: [], person: null, team: null, live: false, fetchedAt: null, view: "list", calM: null, selDay: null };
 
   // ─── CSV PARSER (handles quoted fields) ────────────────────────────────────
   function parseCSV(text) {
@@ -388,15 +413,15 @@
       return 0;
     });
 
-    // hide games the day after their date passes
-    rows = rows.filter(function (r) {
+    // upcoming = games hidden the day after their date passes (list view; calendar shows the whole month)
+    var upcoming = rows.filter(function (r) {
       if (!r._d) return true;
       return (today - r._d) / 86400000 <= 0;
     });
 
     // school filter chips (top row) + crew name chips (second row)
     var schools = {}, people = {};
-    rows.forEach(function (r) {
+    upcoming.forEach(function (r) {
       if (r.team) schools[schoolOf(r.team)] = 1;
       splitCrew(r.who).forEach(function (p) { people[p] = 1; });
     });
@@ -438,12 +463,23 @@
       pf.appendChild(b);
     });
 
-    if (state.team) {
-      rows = rows.filter(function (r) { return schoolOf(r.team) === state.team; });
+    function applyFilters(arr) {
+      if (state.team) arr = arr.filter(function (r) { return schoolOf(r.team) === state.team; });
+      if (state.person) arr = arr.filter(function (r) { return splitCrew(r.who).indexOf(state.person) !== -1; });
+      return arr;
     }
-    if (state.person) {
-      rows = rows.filter(function (r) { return splitCrew(r.who).indexOf(state.person) !== -1; });
+
+    document.getElementById("seg-list").className = "seg-btn" + (state.view === "list" ? " on" : "");
+    document.getElementById("seg-cal").className = "seg-btn" + (state.view === "cal" ? " on" : "");
+
+    if (state.view === "cal") {
+      renderCal(list, applyFilters(rows), today);
+      updateSub(applyFilters(upcoming));
+      updateStamp();
+      return;
     }
+
+    rows = applyFilters(upcoming);
 
     // group by date string
     var groups = [], byKey = {};
@@ -466,42 +502,13 @@
                   (gp.d.getFullYear() !== today.getFullYear() ? " " + gp.d.getFullYear() : "") + "</div>";
         }
       }
-      var dayName = gp.d ? DAYS[gp.d.getDay()] : (gp.day || "Scheduled");
       html += '<div class="day-card' + (isToday ? " today" : "") + '">';
-      html += '<div class="day-head">';
       if (gp.d) {
-        html += '<div class="date-badge"><span class="dow">' + DAYS[gp.d.getDay()].slice(0, 3) + '</span><span class="dnum">' + gp.d.getDate() + "</span></div>";
-        html += '<div class="day-meta"><div class="day-name">' + esc(dayName) + '</div><div class="day-date">' + fmtDate(gp.d) + "</div></div>";
+        html += dayHeadHTML(gp.d, isToday, isTomorrow);
       } else {
-        html += '<div class="day-meta"><div class="day-name">' + esc(dayName) + '</div><div class="day-date">' + esc(gp.rows[0].date || "") + "</div></div>";
+        html += '<div class="day-head"><div class="day-meta"><div class="day-name">' + esc(gp.day || "Scheduled") + '</div><div class="day-date">' + esc(gp.rows[0].date || "") + "</div></div></div>";
       }
-      if (isToday) html += '<span class="day-tag today-tag">Today</span>';
-      else if (isTomorrow) html += '<span class="day-tag tmrw-tag">Tomorrow</span>';
-      html += "</div>";
-      gp.rows.forEach(function (r) {
-        if (!r.event && !r.who && !r.call) {
-          html += '<div class="off">Nothing scheduled</div>';
-          return;
-        }
-        var tc = r.team ? teamColor(r.team) : null;
-        html += '<div class="shift"' + (tc ? ' style="border-left-color:' + tc.bg + ';background:linear-gradient(90deg,' + tc.bg + '12,transparent 55%)"' : "") + ">";
-        if (r.team) html += '<span class="team-badge" style="background:' + tc.bg + ';color:' + tc.fg + '">' + esc(r.team) + "</span>";
-        if (r.event) html += '<div class="ev-title">' + esc(r.event) + "</div>";
-        if (r.loc) html += '<div class="ev-loc">📍 ' + esc(r.loc) + "</div>";
-        var t = "";
-        if (r.call) t += '<div class="time-box call"><div class="lbl">Call</div><div class="val">' + esc(r.call) + "</div></div>";
-        if (r.start) t += '<div class="time-box"><div class="lbl">Start</div><div class="val">' + esc(r.start) + "</div></div>";
-        if (r.end) t += '<div class="time-box"><div class="lbl">End</div><div class="val">' + esc(r.end) + "</div></div>";
-        if (t) html += '<div class="times">' + t + "</div>";
-        var crew = splitCrew(r.who);
-        if (crew.length) {
-          html += '<div class="crew">' + crew.map(function (p) {
-            return '<span class="crew-chip"><span class="av" style="background:' + personColor(p) + '">' + esc(p.charAt(0).toUpperCase()) + "</span>" + esc(p) + "</span>";
-          }).join("") + "</div>";
-        }
-        if (r.notes) html += '<div class="notes">' + esc(r.notes) + "</div>";
-        html += "</div>";
-      });
+      gp.rows.forEach(function (r) { html += shiftHTML(r); });
       html += "</div>";
     });
 
@@ -509,17 +516,126 @@
       html = '<div class="empty"><span class="big">📅</span>No upcoming shifts' + (state.person ? " for " + esc(state.person) : "") + '.<br>Tap <b>Edit</b> to add to the schedule.</div>';
     }
     list.innerHTML = html;
+    updateSub(rows);
+    updateStamp();
+  }
 
+  function updateSub(rows) {
     var sub = document.getElementById("range-sub");
     var count = rows.filter(function (r) { return r.event || r.who; }).length;
     sub.textContent = (state.person ? state.person + " · " : "") + count + (count === 1 ? " shift" : " shifts") + " upcoming";
+  }
 
+  function updateStamp() {
     var st = document.getElementById("stamp");
     st.innerHTML = state.fetchedAt
       ? (state.live
           ? '<span class="live-dot"></span>Live from the schedule sheet · updated ' + state.fetchedAt
           : "Snapshot view · " + state.fetchedAt)
       : "";
+  }
+
+  function dayHeadHTML(d, isToday, isTomorrow) {
+    var h = '<div class="day-head">';
+    h += '<div class="date-badge"><span class="dow">' + DAYS[d.getDay()].slice(0, 3) + '</span><span class="dnum">' + d.getDate() + "</span></div>";
+    h += '<div class="day-meta"><div class="day-name">' + DAYS[d.getDay()] + '</div><div class="day-date">' + fmtDate(d) + "</div></div>";
+    if (isToday) h += '<span class="day-tag today-tag">Today</span>';
+    else if (isTomorrow) h += '<span class="day-tag tmrw-tag">Tomorrow</span>';
+    return h + "</div>";
+  }
+
+  function shiftHTML(r) {
+    if (!r.event && !r.who && !r.call) return '<div class="off">Nothing scheduled</div>';
+    var tc = r.team ? teamColor(r.team) : null;
+    var html = '<div class="shift"' + (tc ? ' style="border-left-color:' + tc.bg + ';background:linear-gradient(90deg,' + tc.bg + '12,transparent 55%)"' : "") + ">";
+    if (r.team) html += '<span class="team-badge" style="background:' + tc.bg + ';color:' + tc.fg + '">' + esc(r.team) + "</span>";
+    if (r.event) html += '<div class="ev-title">' + esc(r.event) + "</div>";
+    if (r.loc) html += '<div class="ev-loc">📍 ' + esc(r.loc) + "</div>";
+    var t = "";
+    if (r.call) t += '<div class="time-box call"><div class="lbl">Call</div><div class="val">' + esc(r.call) + "</div></div>";
+    if (r.start) t += '<div class="time-box"><div class="lbl">Start</div><div class="val">' + esc(r.start) + "</div></div>";
+    if (r.end) t += '<div class="time-box"><div class="lbl">End</div><div class="val">' + esc(r.end) + "</div></div>";
+    if (t) html += '<div class="times">' + t + "</div>";
+    var crew = splitCrew(r.who);
+    if (crew.length) {
+      html += '<div class="crew">' + crew.map(function (p) {
+        return '<span class="crew-chip"><span class="av" style="background:' + personColor(p) + '">' + esc(p.charAt(0).toUpperCase()) + "</span>" + esc(p) + "</span>";
+      }).join("") + "</div>";
+    }
+    if (r.notes) html += '<div class="notes">' + esc(r.notes) + "</div>";
+    return html + "</div>";
+  }
+
+  // ─── CALENDAR VIEW ─────────────────────────────────────────────────────────
+  function renderCal(list, rows, today) {
+    if (!state.calM) state.calM = new Date(today.getFullYear(), today.getMonth(), 1);
+    var m = state.calM;
+    var byDay = {};
+    rows.forEach(function (r) {
+      if (r._d && r._d.getFullYear() === m.getFullYear() && r._d.getMonth() === m.getMonth()) {
+        var k = r._d.getDate();
+        (byDay[k] = byDay[k] || []).push(r);
+      }
+    });
+    var startDow = new Date(m.getFullYear(), m.getMonth(), 1).getDay();
+    var dim = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate();
+    var html = '<div class="cal-card"><div class="cal-head">' +
+      '<button class="cal-nav" id="cal-prev" aria-label="Previous month">‹</button>' +
+      '<div class="cal-title">' + MONTHS_FULL[m.getMonth()] + " " + m.getFullYear() + "</div>" +
+      '<button class="cal-nav" id="cal-next" aria-label="Next month">›</button></div>' +
+      '<div class="cal-grid">';
+    var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    for (var w = 0; w < 7; w++) html += '<div class="cal-dow">' + DOW[w] + "</div>";
+    for (var b = 0; b < startDow; b++) html += '<div class="cal-cell"></div>';
+    for (var d = 1; d <= dim; d++) {
+      var cd = new Date(m.getFullYear(), m.getMonth(), d);
+      var evs = byDay[d] || [];
+      var key = cd.toDateString();
+      var cls = "cal-cell";
+      if (evs.length) cls += " has";
+      if (cd < today) cls += " past";
+      if (sameDay(cd, today)) cls += " today";
+      if (state.selDay === key && evs.length) cls += " sel";
+      html += '<div class="' + cls + '"' + (evs.length ? ' data-k="' + key + '"' : "") + '><span class="cnum">' + d + "</span>";
+      if (evs.length) {
+        html += '<div class="cdots">';
+        evs.slice(0, 4).forEach(function (r) {
+          html += '<span class="cdot" style="background:' + (r.team ? teamColor(r.team).bg : "#6b7280") + '"></span>';
+        });
+        html += "</div>";
+      }
+      html += "</div>";
+    }
+    html += "</div></div>";
+    html += '<div id="cal-day">';
+    var selRows = state.selDay ? rows.filter(function (r) { return r._d && r._d.toDateString() === state.selDay; }) : [];
+    if (selRows.length) {
+      var sd = selRows[0]._d;
+      var isToday = sameDay(sd, today);
+      html += '<div class="day-card' + (isToday ? " today" : "") + '">';
+      html += dayHeadHTML(sd, isToday, (sd - today) / 86400000 === 1);
+      selRows.forEach(function (r) { html += shiftHTML(r); });
+      html += "</div>";
+    } else {
+      html += '<div class="cal-hint">Tap a day with dots to see who’s working.</div>';
+    }
+    html += "</div>";
+    list.innerHTML = html;
+
+    document.getElementById("cal-prev").onclick = function () {
+      state.calM = new Date(m.getFullYear(), m.getMonth() - 1, 1); state.selDay = null; render();
+    };
+    document.getElementById("cal-next").onclick = function () {
+      state.calM = new Date(m.getFullYear(), m.getMonth() + 1, 1); state.selDay = null; render();
+    };
+    var cells = list.querySelectorAll(".cal-cell.has");
+    for (var i = 0; i < cells.length; i++) (function (c) {
+      c.onclick = function () {
+        var k = c.getAttribute("data-k");
+        state.selDay = (state.selDay === k ? null : k);
+        render();
+      };
+    })(cells[i]);
   }
 
   function showBanner(msg) {
@@ -563,6 +679,16 @@
   }
 
   document.getElementById("refresh-btn").onclick = load;
+  document.getElementById("seg-list").onclick = function () { state.view = "list"; render(); };
+  document.getElementById("seg-cal").onclick = function () {
+    state.view = "cal";
+    if (!state.calM) {
+      var n = new Date(); n.setHours(0, 0, 0, 0);
+      state.calM = new Date(n.getFullYear(), n.getMonth(), 1);
+      if (!state.selDay) state.selDay = n.toDateString();
+    }
+    render();
+  };
   load();
 })();
 </script>
