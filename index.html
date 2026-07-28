@@ -4,66 +4,87 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#111827">
+<meta name="theme-color" content="#0c1322">
 <title>CJD Production Schedule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;1,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f4f5f7;
+    --bg: #f2f3f7;
     --card: #ffffff;
-    --ink: #111827;
-    --ink-soft: #6b7280;
-    --line: #e5e7eb;
+    --ink: #101420;
+    --ink-soft: #66708a;
+    --line: #e4e7ef;
     --accent: #2563eb;
     --accent-ink: #ffffff;
-    --today: #2563eb;
-    --chip-bg: #eef2ff;
-    --chip-ink: #3730a3;
+    --chip-bg: #edf1fb;
+    --chip-ink: #33418f;
     --warn-bg: #fffbeb;
     --warn-ink: #92400e;
-    --radius: 14px;
+    --call-bg: #e9f0fe;
+    --call-line: #c6d8f9;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(16,24,40,.05), 0 5px 14px -6px rgba(16,24,40,.1);
+    --display: "Barlow Condensed", "Avenir Next Condensed", "Arial Narrow", -apple-system, sans-serif;
+    --body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0b0f17;
-      --card: #151b26;
-      --ink: #f3f4f6;
-      --ink-soft: #9ca3af;
-      --line: #262f3f;
+      --bg: #0a0e16;
+      --card: #131a28;
+      --ink: #f2f4f8;
+      --ink-soft: #93a0b9;
+      --line: #242e42;
       --accent: #3b82f6;
-      --chip-bg: #1e2740;
+      --chip-bg: #1c2537;
       --chip-ink: #c7d2fe;
       --warn-bg: #2a2210;
       --warn-ink: #fbbf24;
+      --call-bg: #152137;
+      --call-line: #2b4470;
+      --shadow: 0 1px 2px rgba(0,0,0,.35), 0 5px 14px -6px rgba(0,0,0,.5);
     }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--body);
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
     padding-bottom: 40px;
+    -webkit-font-smoothing: antialiased;
   }
   header {
     position: sticky; top: 0; z-index: 10;
-    background: var(--card);
-    border-bottom: 1px solid var(--line);
+    background: linear-gradient(135deg, #0c1322, #1b2740);
+  }
+  .head-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    max-width: 760px; margin: 0 auto;
     padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 12px;
   }
-  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; max-width: 760px; margin: 0 auto; }
-  h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
-  .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .logo {
+    font-family: var(--display); font-style: italic; font-weight: 700; font-size: 21px;
+    color: #fff; background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 10px; padding: 7px 11px 7px 9px; line-height: 1;
+    box-shadow: 0 2px 8px rgba(37,99,235,.4);
+  }
+  h1 { font-family: var(--display); font-size: 21px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #fff; line-height: 1.1; }
+  .sub { font-size: 12px; color: rgba(255,255,255,.62); margin-top: 2px; }
   .btns { display: flex; gap: 8px; flex-shrink: 0; }
   .btn {
-    appearance: none; border: 1px solid var(--line); background: var(--card);
-    color: var(--ink); border-radius: 10px; padding: 9px 13px;
-    font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
+    appearance: none; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08);
+    color: #fff; border-radius: 10px; padding: 9px 13px;
+    font-family: var(--body); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none;
     display: inline-flex; align-items: center; gap: 6px; line-height: 1;
   }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary { background: var(--accent); border-color: transparent; color: var(--accent-ink); }
   .btn:active { transform: scale(0.97); }
-  main { max-width: 760px; margin: 0 auto; padding: 14px 14px 0; }
+  .stripe { height: 4px; background: linear-gradient(90deg, #B7962B 0, #B7962B 25%, #C8102E 25%, #C8102E 50%, #1D4ED8 50%, #1D4ED8 75%, #00843D 75%, #00843D 100%); }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 14px 0; }
   .banner {
     background: var(--warn-bg); color: var(--warn-ink);
     border-radius: var(--radius); padding: 12px 14px; font-size: 13.5px;
@@ -74,70 +95,96 @@
   #filters { padding-bottom: 6px; }
   .filters::-webkit-scrollbar { display: none; }
   .fchip {
-    flex-shrink: 0; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
     border-radius: 999px; padding: 7px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(16,24,40,.04);
   }
   .fchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .pdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .month-div {
+    display: flex; align-items: center; gap: 12px; margin: 22px 2px 12px;
+    font-family: var(--display); font-size: 16px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .month-div::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  #list .month-div:first-child { margin-top: 4px; }
   .day-card {
     background: var(--card); border: 1px solid var(--line);
-    border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+    border-radius: var(--radius); margin-bottom: 14px; overflow: hidden;
+    box-shadow: var(--shadow);
   }
-  .day-card.today { border-color: var(--today); box-shadow: 0 0 0 1px var(--today); }
-  .day-head {
-    display: flex; align-items: baseline; gap: 8px;
-    padding: 12px 14px 0;
-  }
-  .day-name { font-size: 15px; font-weight: 700; }
-  .day-date { font-size: 13px; color: var(--ink-soft); }
-  .today-tag {
-    margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-    color: var(--accent-ink); background: var(--today); border-radius: 6px; padding: 3px 8px;
-    text-transform: uppercase;
-  }
-  .shift { padding: 10px 14px 14px; border-left: 4px solid transparent; }
+  .day-card.today { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent), var(--shadow); }
+  .day-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .date-badge { width: 47px; flex-shrink: 0; text-align: center; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 5px 0 7px; }
+  .date-badge .dow { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+  .date-badge .dnum { display: block; font-family: var(--display); font-size: 24px; font-weight: 700; line-height: 1.05; margin-top: 1px; }
+  .day-card.today .date-badge { background: var(--accent); border-color: var(--accent); }
+  .day-card.today .date-badge .dow, .day-card.today .date-badge .dnum { color: #fff; }
+  .day-meta { min-width: 0; }
+  .day-name { font-size: 15.5px; font-weight: 700; }
+  .day-date { font-size: 12.5px; color: var(--ink-soft); margin-top: 1px; }
+  .day-tag { margin-left: auto; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; border-radius: 999px; padding: 4px 10px; text-transform: uppercase; }
+  .today-tag { color: var(--accent-ink); background: var(--accent); }
+  .tmrw-tag { color: var(--accent); border: 1.5px solid var(--accent); }
+  .shift { padding: 12px 16px 15px; border-left: 4px solid transparent; }
   .shift + .shift { border-top: 1px dashed var(--line); }
   .team-badge {
-    display: inline-block; border-radius: 6px; padding: 3px 9px;
-    font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase;
-    margin-bottom: 6px;
+    display: inline-block; font-family: var(--display); border-radius: 6px; padding: 3px 9px 4px;
+    font-size: 12.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    margin-bottom: 7px;
   }
-  .ev-title { font-size: 16.5px; font-weight: 700; letter-spacing: -0.01em; }
-  .ev-loc { font-size: 13.5px; color: var(--ink-soft); margin-top: 2px; }
-  .times { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .ev-title { font-family: var(--display); font-size: 21px; font-weight: 700; letter-spacing: .015em; line-height: 1.1; }
+  .ev-loc { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+  .times { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 11px; }
   .time-box {
-    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
-    padding: 7px 11px; min-width: 86px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+    padding: 7px 12px 8px; min-width: 92px;
   }
-  .time-box .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-soft); }
-  .time-box .val { font-size: 15px; font-weight: 700; margin-top: 1px; }
-  .time-box.call .val { color: var(--accent); }
-  .crew { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .time-box .lbl { font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-soft); }
+  .time-box .val { font-size: 15.5px; font-weight: 700; margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .time-box.call { background: var(--call-bg); border-color: var(--call-line); }
+  .time-box.call .lbl, .time-box.call .val { color: var(--accent); }
+  .crew { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
   .crew-chip {
+    display: inline-flex; align-items: center; gap: 7px;
     background: var(--chip-bg); color: var(--chip-ink);
-    border-radius: 999px; padding: 5px 11px; font-size: 13px; font-weight: 600;
+    border-radius: 999px; padding: 4px 12px 4px 5px; font-size: 13px; font-weight: 600;
   }
-  .notes { margin-top: 10px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+  .crew-chip .av { width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 10.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .notes { margin-top: 10px; font-size: 13px; color: var(--ink-soft); line-height: 1.5; padding: 8px 11px; background: var(--bg); border-radius: 10px; border-left: 3px solid var(--line); }
   .off {
-    padding: 10px 14px 14px; font-size: 14px; color: var(--ink-soft);
+    padding: 10px 16px 14px; font-size: 14px; color: var(--ink-soft);
   }
-  .empty { text-align: center; color: var(--ink-soft); padding: 48px 20px; font-size: 15px; line-height: 1.5; }
-  .stamp { text-align: center; font-size: 12px; color: var(--ink-soft); padding: 16px 0 8px; }
-  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--accent-ink); border-top-color: transparent; border-radius: 50%; animation: sp 0.7s linear infinite; }
+  .empty { text-align: center; color: var(--ink-soft); padding: 48px 20px; font-size: 15px; line-height: 1.6; }
+  .empty .big { font-size: 40px; display: block; margin-bottom: 10px; }
+  .stamp { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 12px; color: var(--ink-soft); padding: 18px 0 8px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16,185,129,.45); }
+    70% { box-shadow: 0 0 0 7px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: sp 0.7s linear infinite; }
   @keyframes sp { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <header>
   <div class="head-row">
-    <div>
-      <h1>CJD Production Schedule</h1>
-      <div class="sub" id="range-sub">Loading…</div>
+    <div class="brand">
+      <div class="logo">CJD</div>
+      <div>
+        <h1>Production Schedule</h1>
+        <div class="sub" id="range-sub">Loading…</div>
+      </div>
     </div>
     <div class="btns">
       <button class="btn" id="refresh-btn" title="Refresh">↻</button>
       <a class="btn primary" id="edit-btn" href="#" target="_blank" rel="noopener">Edit</a>
     </div>
   </div>
+  <div class="stripe"></div>
 </header>
 <main>
   <div class="banner" id="banner"></div>
@@ -181,6 +228,17 @@
 
   // Crew names always shown as tappable filter chips, even before they're assigned.
   var ROSTER = ["Garrett", "Adrian", "Kadden", "Matt", "Anthony"];
+
+  // Stable color per person — roster order first, hash fallback for extra names.
+  var PERSON_COLORS = ["#2563eb", "#db2777", "#059669", "#d97706", "#7c3aed", "#0891b2", "#dc2626"];
+  function personColor(name) {
+    var i = ROSTER.indexOf(name);
+    if (i === -1) {
+      i = 0;
+      for (var k = 0; k < name.length; k++) i = (i * 31 + name.charCodeAt(k)) % 997;
+    }
+    return PERSON_COLORS[i % PERSON_COLORS.length];
+  }
 
   var EDIT_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/edit";
   var CSV_URL  = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv";
@@ -310,6 +368,7 @@
 
   var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var MONTHS_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
   function fmtDate(d) { return MONTHS[d.getMonth()] + " " + d.getDate(); }
   function sameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
   function esc(s) { var d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
@@ -375,7 +434,9 @@
     names.forEach(function (n) {
       var b = document.createElement("button");
       b.className = "fchip" + (state.person === n ? " on" : "");
-      b.textContent = n;
+      var pc = personColor(n);
+      if (state.person === n) { b.style.background = pc; b.style.borderColor = pc; }
+      b.innerHTML = '<span class="pdot" style="background:' + (state.person === n ? "rgba(255,255,255,.85)" : pc) + '"></span>' + esc(n);
       b.onclick = function () { state.person = (state.person === n ? null : n); render(); };
       pf.appendChild(b);
     });
@@ -396,13 +457,29 @@
     });
 
     var html = "";
+    var lastMonth = -1;
     groups.forEach(function (gp) {
       var isToday = sameDay(gp.d, today);
+      var isTomorrow = gp.d && !isToday && (gp.d - today) / 86400000 === 1;
+      if (gp.d) {
+        var mk = gp.d.getFullYear() * 12 + gp.d.getMonth();
+        if (mk !== lastMonth) {
+          lastMonth = mk;
+          html += '<div class="month-div">' + MONTHS_FULL[gp.d.getMonth()] +
+                  (gp.d.getFullYear() !== today.getFullYear() ? " " + gp.d.getFullYear() : "") + "</div>";
+        }
+      }
       var dayName = gp.d ? DAYS[gp.d.getDay()] : (gp.day || "Scheduled");
-      var dateStr = gp.d ? fmtDate(gp.d) : (gp.rows[0].date || "");
       html += '<div class="day-card' + (isToday ? " today" : "") + '">';
-      html += '<div class="day-head"><span class="day-name">' + esc(dayName) + '</span><span class="day-date">' + esc(dateStr) + "</span>";
-      if (isToday) html += '<span class="today-tag">Today</span>';
+      html += '<div class="day-head">';
+      if (gp.d) {
+        html += '<div class="date-badge"><span class="dow">' + DAYS[gp.d.getDay()].slice(0, 3) + '</span><span class="dnum">' + gp.d.getDate() + "</span></div>";
+        html += '<div class="day-meta"><div class="day-name">' + esc(dayName) + '</div><div class="day-date">' + fmtDate(gp.d) + "</div></div>";
+      } else {
+        html += '<div class="day-meta"><div class="day-name">' + esc(dayName) + '</div><div class="day-date">' + esc(gp.rows[0].date || "") + "</div></div>";
+      }
+      if (isToday) html += '<span class="day-tag today-tag">Today</span>';
+      else if (isTomorrow) html += '<span class="day-tag tmrw-tag">Tomorrow</span>';
       html += "</div>";
       gp.rows.forEach(function (r) {
         if (!r.event && !r.who && !r.call) {
@@ -410,7 +487,7 @@
           return;
         }
         var tc = r.team ? teamColor(r.team) : null;
-        html += '<div class="shift"' + (tc ? ' style="border-left-color:' + tc.bg + '"' : "") + ">";
+        html += '<div class="shift"' + (tc ? ' style="border-left-color:' + tc.bg + ';background:linear-gradient(90deg,' + tc.bg + '12,transparent 55%)"' : "") + ">";
         if (r.team) html += '<span class="team-badge" style="background:' + tc.bg + ';color:' + tc.fg + '">' + esc(r.team) + "</span>";
         if (r.event) html += '<div class="ev-title">' + esc(r.event) + "</div>";
         if (r.loc) html += '<div class="ev-loc">📍 ' + esc(r.loc) + "</div>";
@@ -421,7 +498,9 @@
         if (t) html += '<div class="times">' + t + "</div>";
         var crew = splitCrew(r.who);
         if (crew.length) {
-          html += '<div class="crew">' + crew.map(function (p) { return '<span class="crew-chip">' + esc(p) + "</span>"; }).join("") + "</div>";
+          html += '<div class="crew">' + crew.map(function (p) {
+            return '<span class="crew-chip"><span class="av" style="background:' + personColor(p) + '">' + esc(p.charAt(0).toUpperCase()) + "</span>" + esc(p) + "</span>";
+          }).join("") + "</div>";
         }
         if (r.notes) html += '<div class="notes">' + esc(r.notes) + "</div>";
         html += "</div>";
@@ -430,7 +509,7 @@
     });
 
     if (!groups.length) {
-      html = '<div class="empty">No upcoming shifts' + (state.person ? " for " + esc(state.person) : "") + '.<br>Tap <b>Edit</b> to add to the schedule.</div>';
+      html = '<div class="empty"><span class="big">📅</span>No upcoming shifts' + (state.person ? " for " + esc(state.person) : "") + '.<br>Tap <b>Edit</b> to add to the schedule.</div>';
     }
     list.innerHTML = html;
 
@@ -438,8 +517,11 @@
     var count = rows.filter(function (r) { return r.event || r.who; }).length;
     sub.textContent = (state.person ? state.person + " · " : "") + count + (count === 1 ? " shift" : " shifts") + " upcoming";
 
-    document.getElementById("stamp").textContent = state.fetchedAt
-      ? (state.live ? "Live from the schedule sheet · updated " + state.fetchedAt : "Snapshot view · " + state.fetchedAt)
+    var st = document.getElementById("stamp");
+    st.innerHTML = state.fetchedAt
+      ? (state.live
+          ? '<span class="live-dot"></span>Live from the schedule sheet · updated ' + state.fetchedAt
+          : "Snapshot view · " + state.fetchedAt)
       : "";
   }
 
@@ -453,7 +535,7 @@
   // ─── LOAD ──────────────────────────────────────────────────────────────────
   function load() {
     var btn = document.getElementById("refresh-btn");
-    btn.innerHTML = '<span class="spin" style="border-color:var(--ink-soft);border-top-color:transparent"></span>';
+    btn.innerHTML = '<span class="spin"></span>';
     var done = function () { btn.innerHTML = "↻"; };
     var stampNow = function () {
       var n = new Date();
