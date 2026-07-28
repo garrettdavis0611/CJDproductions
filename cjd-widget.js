@@ -186,4 +186,6 @@ async function main() {
   Script.complete();
 }
 
-if (typeof config !== "undefined") { main(); }
+// Scriptable wraps scripts in an async context, so top-level await is valid there.
+// (Node-based tests stub `config` off and never reach this line.)
+if (typeof config !== "undefined") { await main(); }
