@@ -71,7 +71,12 @@ risk:
   max_concurrent_positions: 3
   max_total_exposure_fraction: 0.35
   max_daily_loss_fraction: 0.08   # halt for the rest of the UTC day at -8%
-  max_consecutive_losses: 4       # halt until manually resumed
+  max_consecutive_losses: 5
+  # Pause entries for 6h after a losing streak. A permanent halt sounds safer but
+  # isn't: at any realistic win rate a streak is inevitable on day one, so a
+  # manual-only breaker stops the bot immediately and gets switched off. Set to 0
+  # if you genuinely want to require a manual resume.
+  consecutive_loss_pause_minutes: 360
   cooldown_minutes_per_mint: 180
   min_seconds_between_entries: 60
 

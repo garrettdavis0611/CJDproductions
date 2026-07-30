@@ -29,6 +29,8 @@ class RiskState:
     realized_pnl_today_usd: float = 0.0
     consecutive_losses: int = 0
     halted_reason: str = ""
+    halted_until: float = 0.0
+    """Unix timestamp when a timed halt expires. 0 means "until manually resumed"."""
     last_entry_ts: float = 0.0
     cooldowns: dict[str, float] = field(default_factory=dict)
     """mint -> unix timestamp before which we will not re-enter."""
@@ -57,24 +59,34 @@ class RiskManager:
             )
         self.state.day = today
         self.state.realized_pnl_today_usd = 0.0
-        # A daily-loss halt clears with the day. A consecutive-loss halt does not:
-        # that one is about the strategy being wrong, not about the calendar.
+        # A daily-loss halt clears with the day. A consecutive-loss pause does not:
+        # that one is about the strategy being wrong, not about the calendar, and it
+        # expires on its own clock.
         if self.state.halted_reason.startswith("daily loss"):
             self.state.halted_reason = ""
+            self.state.halted_until = 0.0
         return True
 
     # ------------------------------------------------------------------- gating
 
-    def is_halted(self) -> bool:
-        return bool(self.state.halted_reason)
+    def is_halted(self, now: float | None = None) -> bool:
+        if not self.state.halted_reason:
+            return False
+        if self.state.halted_until and now is not None and now >= self.state.halted_until:
+            log.info("halt expired (%s); resuming entries", self.state.halted_reason)
+            self.resume()
+            return False
+        return True
 
-    def halt(self, reason: str) -> None:
+    def halt(self, reason: str, until: float = 0.0) -> None:
         if not self.state.halted_reason:
             log.error("TRADING HALTED: %s", reason)
         self.state.halted_reason = reason
+        self.state.halted_until = until
 
     def resume(self) -> None:
         self.state.halted_reason = ""
+        self.state.halted_until = 0.0
         self.state.consecutive_losses = 0
 
     def can_open(
@@ -88,7 +100,7 @@ class RiskManager:
         cfg = self.config
         self.roll_day_if_needed(now)
 
-        if self.is_halted():
+        if self.is_halted(now):
             return SizingDecision(False, reason=f"halted: {self.state.halted_reason}")
 
         if equity_usd <= 0:
@@ -103,7 +115,15 @@ class RiskManager:
             return SizingDecision(False, reason=f"halted: {self.state.halted_reason}")
 
         if self.state.consecutive_losses >= cfg.max_consecutive_losses:
-            self.halt(f"{self.state.consecutive_losses} consecutive losses")
+            pause = cfg.consecutive_loss_pause_minutes
+            if pause > 0:
+                self.halt(
+                    f"{self.state.consecutive_losses} consecutive losses "
+                    f"(paused {pause:.0f}m)",
+                    until=now + pause * 60.0,
+                )
+            else:
+                self.halt(f"{self.state.consecutive_losses} consecutive losses")
             return SizingDecision(False, reason=f"halted: {self.state.halted_reason}")
 
         if open_positions >= cfg.max_concurrent_positions:

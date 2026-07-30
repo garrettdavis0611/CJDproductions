@@ -87,21 +87,51 @@ def test_daily_loss_halt_clears_at_utc_midnight(manager):
     assert manager.state.realized_pnl_today_usd == 0.0
 
 
-def test_consecutive_loss_breaker_survives_the_day_roll(manager):
+def test_consecutive_loss_breaker_pauses_then_expires(manager):
     now = ts()
-    for _ in range(4):
+    for _ in range(RiskConfig().max_consecutive_losses):
         manager.record_exit(MINT, -1.0, now, full_exit=True)
     manager.can_open("OtherMint", 1_000, 0, 0, now)
-    assert manager.is_halted()
+    assert manager.is_halted(now)
     assert "consecutive losses" in manager.state.halted_reason
 
-    # A new calendar day does not make a losing strategy correct.
-    manager.roll_day_if_needed(ts(day=31))
-    assert manager.is_halted()
+    # Still paused an hour later...
+    assert manager.is_halted(now + 3_600)
+    # ...and a new calendar day does not clear it either: the pause runs on its own
+    # clock, not the calendar.
+    manager.roll_day_if_needed(now + 3_600)
+    assert manager.is_halted(now + 3_600)
 
-    manager.resume()
-    assert not manager.is_halted()
+    # It expires on schedule (default 360 minutes) rather than needing a human.
+    assert not manager.is_halted(now + 361 * 60)
     assert manager.state.consecutive_losses == 0
+    assert manager.can_open("OtherMint", 1_000, 0, 0, now + 361 * 60).allowed
+
+
+def test_consecutive_loss_breaker_can_require_a_manual_resume():
+    cfg = RiskConfig(consecutive_loss_pause_minutes=0.0)
+    manager = RiskManager(cfg)
+    now = ts()
+    for _ in range(cfg.max_consecutive_losses):
+        manager.record_exit(MINT, -1.0, now, full_exit=True)
+    manager.can_open("OtherMint", 1_000, 0, 0, now)
+
+    # No expiry: a zero pause means it waits for a human, however long that takes.
+    assert manager.is_halted(now + 365 * 86_400)
+    manager.resume()
+    assert not manager.is_halted(now)
+    assert manager.state.consecutive_losses == 0
+
+
+def test_a_paused_breaker_does_not_mask_the_daily_loss_halt(manager):
+    """The two brakes are independent; clearing one must not clear the other."""
+    now = ts()
+    manager.roll_day_if_needed(now)
+    manager.record_exit(MINT, -85.0, now, full_exit=True)  # -8.5% of $1,000
+    manager.can_open("OtherMint", 1_000, 0, 0, now)
+    assert "daily loss" in manager.state.halted_reason
+    # A daily-loss halt is untimed, so it does not expire on the pause clock.
+    assert manager.is_halted(now + 400 * 60)
 
 
 def test_a_win_resets_the_consecutive_loss_counter(manager):

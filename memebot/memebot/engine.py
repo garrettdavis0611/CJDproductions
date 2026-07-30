@@ -115,7 +115,7 @@ class TradingEngine:
 
         self.manage_positions(now)
 
-        if self.risk.is_halted():
+        if self.risk.is_halted(now):
             log.warning("entries suspended: %s", self.risk.state.halted_reason)
             return
 

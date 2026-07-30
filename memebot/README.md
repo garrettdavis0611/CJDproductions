@@ -54,6 +54,7 @@ python -m memebot check <mint>            # run the safety gauntlet on one token
 python -m memebot scan                    # screen live candidates, place no orders
 python -m memebot paper                   # simulated fills, real costs  (start here)
 python -m memebot backtest                # replay what `scan`/`paper` recorded
+python -m memebot simulate                # drive the engine against synthetic markets
 python -m memebot live                    # real money (heavily gated)
 ```
 
@@ -103,7 +104,7 @@ behaviour.
 | `max_concurrent_positions` | 3 | |
 | `max_total_exposure_fraction` | 35% | Ceiling on total deployed capital. |
 | `max_daily_loss_fraction` | 8% | Halts entries for the rest of the UTC day. Clears at midnight. |
-| `max_consecutive_losses` | 4 | Halts entries until you manually resume. **Does not** clear at midnight — a new calendar day does not make a losing strategy correct. |
+| `max_consecutive_losses` | 5 | Pauses entries for `consecutive_loss_pause_minutes` (default 6h). Runs on its own clock, so a new calendar day does not clear it — but it does not need a human either. Set the pause to 0 to require a manual resume. |
 | `cooldown_minutes_per_mint` | 180 | No revenge-trading the token that just stopped you out. |
 | `live_max_trade_usd` | $50 | Absolute clamp on any live order, independent of sizing. |
 
@@ -147,6 +148,80 @@ cost model. Two limits bound how much the number is worth:
 A backtest showing a small edge is noise. Treat only a large, stable edge that
 survives the cost model as worth funding — and even then it is a hypothesis, not a
 forecast. Five trades is not a sample.
+
+---
+
+## Simulated results (`memebot simulate`)
+
+When no live feed is available, `simulate` replaces **only** the market data source
+and runs the genuine engine, strategy, risk manager, cost model and accounting
+against a price process we control. It is a controlled experiment, not a forecast.
+
+**Read this before reading the numbers:** the price process is written in
+`simulator.py`, so any edge the strategy shows against it is an edge that was put
+there. These runs test *the machinery* — do costs get charged, do the caps bind, does
+the exit ladder fire in the right order, do the rug defences work. They say **nothing
+about whether real meme coins trend.** Only recorded live data can answer that.
+
+20 Monte Carlo runs per regime, 3 simulated days each, $1,000 starting equity,
+60-token universe, default config:
+
+| Regime | Median | Mean | p10 | p90 | Worst | Profitable | Median trades | Win rate |
+|---|---|---|---|---|---|---|---|---|
+| `random_walk` (null) | −4.05% | −2.78% | −7.91% | +3.32% | −14.10% | 6/20 | 84 | 40% |
+| `momentum` (positive control) | +16.76% | +16.05% | +9.80% | +22.69% | +9.22% | 20/20 | 120 | 53% |
+| `mean_reverting` | −8.67% | −8.52% | −11.08% | −6.30% | −12.32% | 0/20 | 66 | 29% |
+| `rug_infested` | +0.04% | +1.68% | −4.82% | +11.47% | −8.30% | 10/20 | 67 | 43% |
+| `mixed` | +0.56% | +1.70% | −5.76% | +12.81% | −7.61% | 11/20 | 98 | 43% |
+
+What each row is actually telling you:
+
+- **`random_walk` is the important one.** Prices are a martingale — zero expected
+  return, no edge to find. The bot loses a median 4%. Roughly 1.2 points of that is
+  fees; the rest is the exit ladder itself, because an 18% stop gets hit often at
+  this volatility while the trailing stop caps the upside. **In a market with no
+  edge, this bot bleeds.** That is the correct and expected result, and it is the
+  single most useful number here.
+- **`momentum` shows the strategy works when the edge exists** — 20/20 profitable.
+  That validates the machinery end to end. It is not evidence the edge is real.
+- **`mean_reverting` loses in 20/20 runs**, which confirms the strategy is genuinely
+  directional rather than accidentally regime-neutral. A strategy that made money in
+  both `momentum` and `mean_reverting` would be measuring nothing.
+- **`rug_infested` and `mixed` land near zero** — the trend edge roughly cancels
+  against costs, rugs and volatility.
+
+### Do the rug defences actually work?
+
+The A/B that matters. Same markets, same seeds, `liquidity_drain_exit_pct` enabled
+vs disabled, measuring only positions **held into a rug** (entered before the rug
+started, exited after):
+
+| | Positions caught | Mean return | Worst | Avg $/position |
+|---|---|---|---|---|
+| Drain exit **on** | 50 | **−12.08%** | −72.89% | −$2.04 |
+| Drain exit **off** | 48 | **−34.23%** | −72.89% | −$6.11 |
+
+**A position caught in a rug loses 12% instead of 34%** — the drain exit fired 50
+times and cut about two-thirds of the loss, because liquidity leaves before the price
+fully collapses, so it triggers ahead of the price stop.
+
+At the portfolio level the effect is smaller and mostly in the tail: mean return
+improved +1.76pp in `rug_infested`, and in `mixed` the mean barely moved (+0.30pp)
+while the **worst case improved by 4 percentage points**. That is what insurance
+looks like — it does not raise your average, it truncates your left tail. Do not
+expect it to make a losing strategy profitable.
+
+### A bug this study found
+
+The first run of the study halted **every single simulation** permanently. The
+consecutive-loss breaker was set to halt after 4 losses and required a manual resume
+— and at a ~43% win rate, four consecutive losses is close to certain within the
+first day. The default config would have bricked the bot on day one, and the
+predictable human response is to switch the breaker off entirely, which is worse than
+having a weaker one. It is now a timed 6-hour pause (`consecutive_loss_pause_minutes`),
+still settable to 0 if you genuinely want manual-only.
+
+Running the thing is how you find that. Reading the code is not.
 
 ---
 
@@ -211,13 +286,14 @@ memebot/
   portfolio.py         cash, positions, realised PnL, JSONL audit trail
   engine.py            the loop: exits before entries, always
   backtest.py          replay recorded snapshots
+  simulator.py         synthetic markets for controlled experiments
   cli.py
 ```
 
 ## Tests
 
 ```bash
-python -m pytest tests/ -q      # 137 tests
+python -m pytest -q      # 156 tests
 ```
 
 The screening and cost-model tests are the important ones: each screening test

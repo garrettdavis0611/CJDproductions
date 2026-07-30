@@ -292,6 +292,72 @@ def cmd_costs(_args: argparse.Namespace, config: Config) -> int:
     return 0
 
 
+def cmd_simulate(args: argparse.Namespace, config: Config) -> int:
+    """Drive the real engine against a synthetic market.
+
+    Used when no live feed is available, and as a controlled experiment: the rug
+    regimes test the defences, and `random_walk` is the null hypothesis.
+    """
+    from .simulator import REGIMES, Regime, aggregate, sweep
+
+    def fresh_config() -> Config:
+        cfg = load_config(Path(args.config) if Path(args.config).exists() else None)
+        cfg.engine.record_snapshots = False
+        cfg.risk.min_seconds_between_entries = 0.0
+        if args.no_rug_defence:
+            # Effectively disables the liquidity-drain exit for the A/B comparison.
+            cfg.strategy.liquidity_drain_exit_pct = 0.999
+        return cfg
+
+    names = list(REGIMES) if args.regime == "all" else [args.regime]
+    seeds = list(range(args.seeds))
+    results: dict[str, object] = {}
+
+    for name in names:
+        regime: Regime = REGIMES[name]
+        log.info("simulating %s: %s", name, regime.description)
+        runs = sweep(fresh_config, regime, seeds, cycles=args.cycles, universe_size=args.universe)
+        summary = aggregate(runs)
+        summary["description"] = regime.description
+        results[name] = summary
+        _print_regime(summary)
+
+    if args.json_out:
+        Path(args.json_out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.json_out).write_text(json.dumps(results, indent=2))
+        print(f"\nwrote {args.json_out}")
+
+    print(
+        "\nThese are simulated markets. A profitable result in the `momentum` regime "
+        "shows the strategy can capture autocorrelation that exists — it is NOT "
+        "evidence that real meme coins are autocorrelated. Only recorded live data "
+        "can answer that."
+    )
+    return 0
+
+
+def _print_regime(summary: dict[str, object]) -> None:
+    print(f"\n=== {summary['regime']}  ({summary['runs']} runs x {summary.get('description', '')})")
+    print(
+        f"  return   median {summary['median_return_pct']:+.2f}%   "
+        f"p10 {summary['p10_return_pct']:+.2f}%   p90 {summary['p90_return_pct']:+.2f}%   "
+        f"worst {summary['worst_return_pct']:+.2f}%"
+    )
+    print(
+        f"  profitable in {summary['profitable_runs']}/{summary['runs']} runs   "
+        f"median trades {summary['median_trades']:.0f}   "
+        f"median win rate {summary['median_win_rate_pct']:.0f}%"
+    )
+    print(
+        f"  median fees ${summary['median_fees_usd']:.2f}   "
+        f"median max drawdown {summary['median_max_drawdown_pct']:.2f}%   "
+        f"halted in {summary['runs_halted']}/{summary['runs']} runs"
+    )
+    if summary.get("exit_reasons"):
+        reasons = "  ".join(f"{k}={v}" for k, v in summary["exit_reasons"].items())  # type: ignore[union-attr]
+        print(f"  exits: {reasons}")
+
+
 def _report(engine: TradingEngine) -> None:
     summary = engine.portfolio.performance_summary()
     print("\n" + json.dumps(summary, indent=2))
@@ -350,6 +416,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     costs = sub.add_parser("costs", help="show the round-trip cost model")
     costs.set_defaults(func=cmd_costs)
+
+    simulate = sub.add_parser("simulate", help="run the engine against a synthetic market")
+    simulate.add_argument(
+        "--regime", default="all",
+        help="random_walk | momentum | mean_reverting | rug_infested | mixed | all",
+    )
+    simulate.add_argument("--seeds", type=int, default=20, help="Monte Carlo runs per regime")
+    simulate.add_argument("--cycles", type=int, default=864, help="5-minute cycles (864 = 3 days)")
+    simulate.add_argument("--universe", type=int, default=60, help="tokens in the synthetic market")
+    simulate.add_argument(
+        "--no-rug-defence", action="store_true",
+        help="disable the liquidity-drain exit, to measure what it is worth",
+    )
+    simulate.add_argument("--json-out", default=None, help="write full results to this path")
+    simulate.set_defaults(func=cmd_simulate)
 
     return parser
 

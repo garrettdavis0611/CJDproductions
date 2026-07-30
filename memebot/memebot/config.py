@@ -94,7 +94,16 @@ class RiskConfig:
     max_total_exposure_fraction: float = 0.35
     max_daily_loss_fraction: float = 0.08
     """Trading halts for the rest of the UTC day once realised losses hit this."""
-    max_consecutive_losses: int = 4
+    max_consecutive_losses: int = 5
+    consecutive_loss_pause_minutes: float = 360.0
+    """How long the consecutive-loss breaker pauses entries. Set to 0 to require a
+    manual resume instead.
+
+    A permanent halt sounds safer but is not: at any realistic win rate a run of
+    losses is inevitable within the first day, so a manual-only breaker stops the bot
+    almost immediately and the usual reaction is to disable the breaker entirely.
+    A timed pause is the setting people actually keep.
+    """
     cooldown_minutes_per_mint: float = 180.0
     min_seconds_between_entries: float = 60.0
 
