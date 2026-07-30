@@ -154,8 +154,13 @@ class SmartMoneyConfig:
     enabled: bool = False
     feed: str = "rpc"  # rpc | birdeye
     max_wallets_tracked: int = 25
-    analysis_transactions: int = 200
-    """How many recent transactions to reconstruct per wallet."""
+    analysis_transactions: int = 600
+    """Transactions to reconstruct per wallet.
+
+    Judging six-month consistency needs six months of trades, so this has to be large.
+    On the RPC feed it costs one `getTransaction` per signature — 600 calls per wallet.
+    Use a paid endpoint or the Birdeye feed; the public RPC will rate-limit you.
+    """
     refresh_minutes: float = 360.0
     """How often to re-analyse followed wallets. A record can decay."""
 
@@ -170,6 +175,30 @@ class SmartMoneyConfig:
     """Below this the wallet is a sniper. Its edge is latency, which you cannot copy."""
     max_median_hold_minutes: float = 2_880.0
     """Above this the signal is too slow to be actionable."""
+
+    # --- temporal stability: "has it worked *consistently*", not "is the total big"
+    # A wallet that made everything in one month and bled since has the same total
+    # PnL as one that earned steadily. Only the second is worth copying.
+    min_history_days: float = 150.0
+    """Roughly five months. You cannot claim a six-month record from three weeks."""
+    min_months_covered: int = 5
+    min_profitable_month_fraction: float = 0.60
+    """e.g. profitable in at least 4 of 6 months."""
+    max_losing_month_streak: int = 2
+    max_wallet_drawdown_pct: float = 60.0
+    """Drawdown of the wallet's own realized equity curve."""
+    max_days_since_last_trade: float = 14.0
+    """A dormant wallet's record is history, not a signal."""
+    reject_decaying_wallets: bool = True
+    """Reject if the recent half of the history earned far less than the earlier half."""
+    min_recent_pnl_sol: float = 0.0
+    """The recent half must not be a loss."""
+
+    lookback_days: float = 210.0
+    """How far back to pull trades when analysing. Wider than the 6-month claim so the
+    edges of the window are visible."""
+    max_analysis_pages: int = 12
+    """Signature pages to walk per wallet. Bounds the RPC cost of a deep history."""
 
     # --- signal gates --------------------------------------------------------
     min_wallets_consensus: int = 2
@@ -268,6 +297,14 @@ class Config:
                 raise ConfigError(
                     "smart_money.min_median_hold_minutes must be positive — copying snipers "
                     "means competing on latency you do not have"
+                )
+            if not 0 < sm.min_profitable_month_fraction <= 1.0:
+                raise ConfigError("smart_money.min_profitable_month_fraction must be in (0, 1]")
+            if sm.lookback_days < sm.min_history_days:
+                raise ConfigError(
+                    f"smart_money.lookback_days ({sm.lookback_days:.0f}) is shorter than "
+                    f"min_history_days ({sm.min_history_days:.0f}) — no wallet could ever pass, "
+                    "because you would never fetch enough history to prove it"
                 )
 
         # A round trip that costs more than the take-profit target can never win.

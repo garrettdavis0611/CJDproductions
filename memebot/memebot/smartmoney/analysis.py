@@ -92,7 +92,9 @@ def build_episodes(trades: Sequence[WalletTrade]) -> list[PositionEpisode]:
     return episodes
 
 
-def compute_stats(wallet: str, trades: Sequence[WalletTrade]) -> WalletStats:
+def compute_stats(
+    wallet: str, trades: Sequence[WalletTrade], now: float | None = None
+) -> WalletStats:
     stats = WalletStats(wallet=wallet, trades_analysed=len(trades))
     if not trades:
         return stats
@@ -125,7 +127,54 @@ def compute_stats(wallet: str, trades: Sequence[WalletTrade]) -> WalletStats:
     if gross_profit > 0:
         stats.best_token_profit_share = max(profit_by_mint.values()) / gross_profit
 
+    _add_temporal_stats(stats, closed, now=now)
     return stats
+
+
+def _add_temporal_stats(
+    stats: WalletStats, closed: Sequence[PositionEpisode], now: float | None = None
+) -> None:
+    """Measure whether the record is *steady*, not merely large in total.
+
+    A wallet that earned everything in one month and has bled since shows the same
+    aggregate PnL as one that earned consistently. Only the second is worth copying,
+    and nothing above this line can tell them apart.
+    """
+    reference = now if now is not None else stats.last_ts
+    stats.history_days = max(0.0, (stats.last_ts - stats.first_ts) / 86_400.0)
+    stats.days_since_last_trade = max(0.0, (reference - stats.last_ts) / 86_400.0)
+
+    monthly: dict[str, float] = defaultdict(float)
+    for episode in closed:
+        bucket = datetime.fromtimestamp(episode.exit_ts, tz=timezone.utc).strftime("%Y-%m")
+        monthly[bucket] += episode.pnl_sol
+    stats.monthly_pnl_sol = dict(monthly)
+    stats.months_covered = len(monthly)
+    stats.profitable_months = sum(1 for pnl in monthly.values() if pnl > 0)
+
+    streak = 0
+    for month in sorted(monthly):
+        if monthly[month] <= 0:
+            streak += 1
+            stats.longest_losing_month_streak = max(stats.longest_losing_month_streak, streak)
+        else:
+            streak = 0
+
+    # Split the observed history in half and compare, to catch a decaying edge.
+    midpoint = stats.first_ts + (stats.last_ts - stats.first_ts) / 2.0
+    stats.recent_pnl_sol = sum(e.pnl_sol for e in closed if e.exit_ts >= midpoint)
+    stats.prior_pnl_sol = sum(e.pnl_sol for e in closed if e.exit_ts < midpoint)
+
+    # The wallet's own equity curve drawdown: how bad did holding this trader get?
+    equity = 0.0
+    peak = 0.0
+    worst = 0.0
+    for episode in sorted(closed, key=lambda e: e.exit_ts):
+        equity += episode.pnl_sol
+        peak = max(peak, equity)
+        if peak > 0:
+            worst = min(worst, (equity - peak) / peak)
+    stats.wallet_max_drawdown_pct = abs(worst) * 100.0
 
 
 def qualify(stats: WalletStats, config: SmartMoneyConfig) -> WalletStats:
@@ -169,6 +218,49 @@ def qualify(stats: WalletStats, config: SmartMoneyConfig) -> WalletStats:
             f"(> {config.max_median_hold_minutes:.0f}m) — signal is too slow to copy"
         )
 
+    # --- temporal stability -------------------------------------------------
+    if stats.history_days < config.min_history_days:
+        fails.append(
+            f"history spans only {stats.history_days:.0f} days "
+            f"(< {config.min_history_days:.0f}) — cannot claim a sustained record from this"
+        )
+    if stats.months_covered < config.min_months_covered:
+        fails.append(
+            f"active in only {stats.months_covered} calendar month(s) "
+            f"(< {config.min_months_covered})"
+        )
+    if stats.months_covered and stats.profitable_month_fraction < config.min_profitable_month_fraction:
+        fails.append(
+            f"profitable in {stats.profitable_months}/{stats.months_covered} months "
+            f"({stats.profitable_month_fraction:.0%} < {config.min_profitable_month_fraction:.0%}) — "
+            "the total is carried by a few good months"
+        )
+    if stats.longest_losing_month_streak > config.max_losing_month_streak:
+        fails.append(
+            f"{stats.longest_losing_month_streak} consecutive losing months "
+            f"(> {config.max_losing_month_streak})"
+        )
+    if stats.wallet_max_drawdown_pct > config.max_wallet_drawdown_pct:
+        fails.append(
+            f"their own equity curve drew down {stats.wallet_max_drawdown_pct:.0f}% "
+            f"(> {config.max_wallet_drawdown_pct:.0f}%) — copying this is a rough ride"
+        )
+    if stats.days_since_last_trade > config.max_days_since_last_trade:
+        fails.append(
+            f"last traded {stats.days_since_last_trade:.0f} days ago "
+            f"(> {config.max_days_since_last_trade:.0f}) — record may be historical"
+        )
+    if config.reject_decaying_wallets and stats.is_decaying:
+        fails.append(
+            f"edge is decaying: {stats.recent_pnl_sol:+.2f} SOL recently vs "
+            f"{stats.prior_pnl_sol:+.2f} SOL before — the good period is behind them"
+        )
+    if stats.recent_pnl_sol < config.min_recent_pnl_sol:
+        fails.append(
+            f"recent-half PnL {stats.recent_pnl_sol:+.2f} SOL "
+            f"(< {config.min_recent_pnl_sol:+.2f}) — not currently working"
+        )
+
     stats.disqualifiers = fails
     stats.qualified = not fails
     stats.score = score_wallet(stats)
@@ -188,16 +280,21 @@ def score_wallet(stats: WalletStats) -> float:
         return min(1.0, max(0.0, (value - low) / (high - low)))
 
     consistency = 1.0 - min(1.0, stats.best_token_profit_share)
+    steadiness = stats.profitable_month_fraction
     return (
-        0.30 * band(stats.win_rate, 0.40, 0.70)
-        + 0.25 * band(stats.realized_pnl_sol, 1.0, 100.0)
-        + 0.20 * consistency
-        + 0.15 * band(float(stats.closed_episodes), 10.0, 100.0)
-        + 0.10 * band(float(stats.active_days), 3.0, 30.0)
+        0.24 * band(stats.win_rate, 0.40, 0.70)
+        + 0.20 * band(stats.realized_pnl_sol, 1.0, 100.0)
+        + 0.18 * consistency
+        + 0.18 * steadiness
+        + 0.12 * band(float(stats.closed_episodes), 10.0, 100.0)
+        + 0.08 * band(float(stats.months_covered), 3.0, 12.0)
     )
 
 
 def analyse(
-    wallet: str, trades: Iterable[WalletTrade], config: SmartMoneyConfig
+    wallet: str,
+    trades: Iterable[WalletTrade],
+    config: SmartMoneyConfig,
+    now: float | None = None,
 ) -> WalletStats:
-    return qualify(compute_stats(wallet, list(trades)), config)
+    return qualify(compute_stats(wallet, list(trades), now=now), config)

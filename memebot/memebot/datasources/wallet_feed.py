@@ -36,31 +36,72 @@ class WalletFeed(Protocol):
 
 
 class SolanaWalletFeed:
-    """Reconstruct trades from `getSignaturesForAddress` + `getTransaction`."""
+    """Reconstruct trades from `getSignaturesForAddress` + `getTransaction`.
 
-    def __init__(self, rpc: SolanaRpc, max_transactions: int = 200) -> None:
+    Paginates backwards through signature history so a six-month record can actually
+    be seen. That is deliberately expensive: judging whether a wallet has been
+    *consistently* good needs the whole window, and one page of recent activity
+    cannot answer it. `max_pages` bounds the cost.
+    """
+
+    SIGNATURES_PER_PAGE = 100
+
+    def __init__(self, rpc: SolanaRpc, max_transactions: int = 200, max_pages: int = 1) -> None:
         self.rpc = rpc
         self.max_transactions = max_transactions
+        self.max_pages = max(1, max_pages)
 
-    def recent_trades(self, wallet: str, limit: int | None = None) -> list[WalletTrade]:
+    def recent_trades(
+        self,
+        wallet: str,
+        limit: int | None = None,
+        since_ts: float | None = None,
+        max_pages: int | None = None,
+    ) -> list[WalletTrade]:
         budget = limit or self.max_transactions
-        signatures = self.rpc.signatures_for_address(wallet, limit=budget)
+        pages = max_pages if max_pages is not None else self.max_pages
         trades: list[WalletTrade] = []
         skipped = 0
+        fetched = 0
+        before: str | None = None
+        reached_start = False
 
-        for entry in signatures:
-            signature = entry.get("signature") if isinstance(entry, dict) else None
-            if not signature:
-                continue
-            if entry.get("err"):
-                continue  # failed transactions moved nothing
-            tx = self.rpc.get_transaction(signature)
-            if tx is None:
-                skipped += 1
-                continue
-            trade = parse_swap(tx, wallet, signature)
-            if trade is not None:
-                trades.append(trade)
+        for _page in range(pages):
+            if fetched >= budget:
+                break
+            page_size = min(self.SIGNATURES_PER_PAGE, budget - fetched)
+            signatures = self.rpc.signatures_for_address(wallet, limit=page_size, before=before)
+            if not signatures:
+                break
+
+            last_signature = None
+            for entry in signatures:
+                if not isinstance(entry, dict):
+                    continue
+                signature = entry.get("signature")
+                if not signature:
+                    continue
+                last_signature = signature
+                fetched += 1
+
+                block_time = entry.get("blockTime")
+                if since_ts is not None and block_time and float(block_time) < since_ts:
+                    reached_start = True
+                    continue
+                if entry.get("err"):
+                    continue  # failed transactions moved nothing
+
+                tx = self.rpc.get_transaction(signature)
+                if tx is None:
+                    skipped += 1
+                    continue
+                trade = parse_swap(tx, wallet, signature)
+                if trade is not None:
+                    trades.append(trade)
+
+            if reached_start or last_signature is None or len(signatures) < page_size:
+                break
+            before = last_signature
 
         if skipped:
             log.info("%s: %d transactions could not be fetched", wallet[:8], skipped)

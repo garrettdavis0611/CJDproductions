@@ -79,9 +79,38 @@ class WalletStats:
     trades_analysed: int = 0
     first_ts: float = 0.0
     last_ts: float = 0.0
+
+    # --- temporal stability -------------------------------------------------
+    # Aggregate numbers hide decay. A wallet that made everything in month one and
+    # bled for five months has the same total PnL as one that earned steadily, and
+    # only the second is worth copying.
+    history_days: float = 0.0
+    monthly_pnl_sol: dict[str, float] = field(default_factory=dict)
+    months_covered: int = 0
+    profitable_months: int = 0
+    recent_pnl_sol: float = 0.0
+    """Realized PnL in the most recent half of the evaluation window."""
+    prior_pnl_sol: float = 0.0
+    """Realized PnL in the earlier half, for decay comparison."""
+    wallet_max_drawdown_pct: float = 0.0
+    """Worst peak-to-trough decline of the wallet's own realized equity curve."""
+    days_since_last_trade: float = 0.0
+    longest_losing_month_streak: int = 0
+
     score: float = 0.0
     qualified: bool = False
     disqualifiers: list[str] = field(default_factory=list)
+
+    @property
+    def profitable_month_fraction(self) -> float:
+        return self.profitable_months / self.months_covered if self.months_covered else 0.0
+
+    @property
+    def is_decaying(self) -> bool:
+        """Earning materially less recently than before."""
+        if self.prior_pnl_sol <= 0:
+            return self.recent_pnl_sol < 0
+        return self.recent_pnl_sol < self.prior_pnl_sol * 0.25
 
     def summary(self) -> dict[str, object]:
         return {
@@ -96,6 +125,16 @@ class WalletStats:
             "best_token_profit_share_pct": round(self.best_token_profit_share * 100.0, 1),
             "active_days": self.active_days,
             "trades_analysed": self.trades_analysed,
+            "history_days": round(self.history_days, 1),
+            "months_covered": self.months_covered,
+            "profitable_months": self.profitable_months,
+            "monthly_pnl_sol": {k: round(v, 3) for k, v in sorted(self.monthly_pnl_sol.items())},
+            "recent_pnl_sol": round(self.recent_pnl_sol, 3),
+            "prior_pnl_sol": round(self.prior_pnl_sol, 3),
+            "wallet_max_drawdown_pct": round(self.wallet_max_drawdown_pct, 1),
+            "days_since_last_trade": round(self.days_since_last_trade, 1),
+            "longest_losing_month_streak": self.longest_losing_month_streak,
+            "is_decaying": self.is_decaying,
             "disqualifiers": list(self.disqualifiers),
         }
 

@@ -167,6 +167,68 @@ def test_solana_feed_reconstructs_and_sorts_trades():
     assert [t.ts for t in trades] == [1_700_000_100, 1_700_000_200]
 
 
+def test_solana_feed_paginates_to_reach_older_history():
+    """A six-month judgement needs six months of signatures, not the first page."""
+    import json
+
+    pages = {
+        None: [{"signature": f"a{i}", "blockTime": 1_700_000_000 - i} for i in range(100)],
+        "a99": [{"signature": f"b{i}", "blockTime": 1_699_990_000 - i} for i in range(50)],
+    }
+    requested_before: list[str | None] = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        if body["method"] == "getSignaturesForAddress":
+            before = (body["params"][1] or {}).get("before")
+            requested_before.append(before)
+            return httpx.Response(200, json={"result": pages.get(before, [])})
+        signature = body["params"][0]
+        return httpx.Response(200, json={"result": tx(10.0, 8.5, 0.0, 1_000.0)})
+
+    feed = SolanaWalletFeed(rpc_stub(handler), max_transactions=200, max_pages=3)
+    trades = feed.recent_trades(WALLET)
+    assert requested_before == [None, "a99"]
+    assert len(trades) == 150
+
+
+def test_solana_feed_stops_at_the_lookback_boundary():
+    import json
+
+    signatures = [
+        {"signature": "recent", "blockTime": 1_700_000_000},
+        {"signature": "ancient", "blockTime": 1_600_000_000},
+    ]
+
+    def handler(request):
+        body = json.loads(request.content)
+        if body["method"] == "getSignaturesForAddress":
+            return httpx.Response(200, json={"result": signatures})
+        assert body["params"][0] == "recent", "must not fetch beyond the window"
+        return httpx.Response(200, json={"result": tx(10.0, 8.5, 0.0, 1_000.0)})
+
+    feed = SolanaWalletFeed(rpc_stub(handler), max_pages=3)
+    trades = feed.recent_trades(WALLET, since_ts=1_699_000_000)
+    assert len(trades) == 1
+
+
+def test_solana_feed_respects_the_transaction_budget():
+    import json
+
+    def handler(request):
+        body = json.loads(request.content)
+        if body["method"] == "getSignaturesForAddress":
+            limit = body["params"][1]["limit"]
+            return httpx.Response(
+                200,
+                json={"result": [{"signature": f"s{i}", "blockTime": 1_700_000_000} for i in range(limit)]},
+            )
+        return httpx.Response(200, json={"result": tx(10.0, 8.5, 0.0, 1_000.0)})
+
+    feed = SolanaWalletFeed(rpc_stub(handler), max_transactions=30, max_pages=5)
+    assert len(feed.recent_trades(WALLET)) == 30
+
+
 def test_solana_feed_skips_failed_signatures():
     import json
 

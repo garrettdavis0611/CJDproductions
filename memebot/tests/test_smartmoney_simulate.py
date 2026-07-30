@@ -56,8 +56,12 @@ def test_a_sniper_holds_for_minutes():
 
 
 def test_selection_accepts_skill_and_rejects_luck_and_snipers():
+    """Recall is ~83% at scale, down from ~97% before the six-month consistency gates
+    were added. That drop is the measured price of demanding sustained success: some
+    genuinely skilled wallets have a losing month and get cut. For deciding where to
+    put money, a low false-accept rate is worth more than recall."""
     result = selection_experiment(sm(), per_archetype=40, seed=7)
-    assert result["skilled_recall_pct"] >= 80.0
+    assert result["skilled_recall_pct"] >= 70.0
     assert result["lucky_false_accept_pct"] <= 5.0
     assert result["sniper_false_accept_pct"] <= 5.0
 
@@ -69,15 +73,40 @@ def test_farmers_pass_the_a_priori_filters_by_design():
     assert result["farmer_false_accept_pct"] >= 50.0
 
 
-def test_loosening_the_concentration_gate_admits_lucky_wallets():
-    """Direct evidence that the gate is load-bearing, not decoration."""
+def test_a_naive_pnl_leaderboard_config_admits_lucky_wallets():
+    """Direct evidence that the gates are load-bearing, not decoration.
+
+    This config is what "sort wallets by PnL and follow the top ones" amounts to:
+    keep the profit threshold, drop everything that tests for consistency.
+    """
     strict = selection_experiment(sm(), per_archetype=40, seed=9)
-    loose_config = sm()
-    loose_config.max_single_token_profit_share = 1.0
-    loose_config.min_active_days = 1
-    loose_config.min_closed_trades = 10
-    loose = selection_experiment(loose_config, per_archetype=40, seed=9)
-    assert loose["lucky_false_accept_pct"] > strict["lucky_false_accept_pct"]
+
+    naive = sm()
+    naive.max_single_token_profit_share = 1.0   # one moonshot is fine
+    naive.min_win_rate = 0.0                    # who cares how often
+    naive.min_active_days = 1
+    naive.min_closed_trades = 10
+    naive.min_history_days = 1.0
+    naive.min_months_covered = 1
+    naive.min_profitable_month_fraction = 0.01
+    naive.max_losing_month_streak = 99
+    naive.max_wallet_drawdown_pct = 1e9
+    naive.max_days_since_last_trade = 1e9
+    naive.reject_decaying_wallets = False
+    naive.min_recent_pnl_sol = -1e9
+
+    loose = selection_experiment(naive, per_archetype=40, seed=9)
+    assert strict["lucky_false_accept_pct"] == 0.0
+    assert loose["lucky_false_accept_pct"] > 50.0
+
+
+def test_temporal_gates_reject_a_short_lived_record():
+    """A six-month claim needs six months of history, whatever the totals say."""
+    short = sm()
+    short.min_history_days = 400.0  # demand more history than any synthetic wallet has
+    short.lookback_days = 500.0
+    result = selection_experiment(short, per_archetype=20, seed=11)
+    assert result["skilled_recall_pct"] == 0.0
 
 
 def test_selection_report_shape():

@@ -132,13 +132,16 @@ def test_empty_history_is_handled():
 # --------------------------------------------------------------- qualification
 
 
-def solid_history(episodes=30, tokens=None, ratio_win=1.5, win_rate=0.6, days=20, hold=60.0):
+def solid_history(
+    episodes=36, tokens=None, ratio_win=1.5, win_rate=0.6, span_days=200.0, hold=60.0
+):
+    """A wallet that would pass every gate: broad, consistent, and spread over ~7 months."""
     trades = []
     for i in range(episodes):
         mint = f"T{i % (tokens or episodes)}"
-        win = (i % 10) < int(win_rate * 10)
+        win = (i % 10) < int(round(win_rate * 10))
         ratio = ratio_win if win else 0.85
-        ts = T0 + (i % days) * DAY + i * 60
+        ts = T0 + (i / max(1, episodes - 1)) * span_days * DAY
         trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, ratio, ts + hold * 60.0)]
     return trades
 
@@ -168,7 +171,7 @@ def test_low_win_rate_is_disqualifying():
 
 
 def test_a_single_session_record_is_disqualifying():
-    stats = analyse(WALLET, solid_history(days=1), SmartMoneyConfig(enabled=True))
+    stats = analyse(WALLET, solid_history(span_days=0.5), SmartMoneyConfig(enabled=True))
     assert not stats.qualified
     assert any("one session's luck" in d for d in stats.disqualifiers)
 
@@ -200,7 +203,9 @@ def test_unprofitable_wallet_is_disqualified():
 
 
 def test_all_failures_are_reported_together():
-    stats = analyse(WALLET, solid_history(episodes=5, days=1, hold=0.5), SmartMoneyConfig(enabled=True))
+    stats = analyse(
+        WALLET, solid_history(episodes=5, span_days=1.0, hold=0.5), SmartMoneyConfig(enabled=True)
+    )
     assert not stats.qualified
     assert len(stats.disqualifiers) >= 3
 
@@ -212,6 +217,149 @@ def test_qualification_thresholds_are_hard_gates_not_a_weighted_average():
     stats = analyse(WALLET, trades, SmartMoneyConfig(enabled=True))
     assert stats.realized_pnl_sol > 1_000
     assert not stats.qualified
+
+
+# ------------------------------------------------------ temporal stability
+# The gates that answer "has this worked consistently for six months", as opposed
+# to "is the all-time total impressive".
+
+
+def test_monthly_buckets_and_span_are_measured():
+    stats = compute_stats(WALLET, solid_history(episodes=36, span_days=200.0))
+    assert stats.history_days == pytest.approx(200.0, rel=0.02)
+    assert stats.months_covered >= 6
+    assert stats.profitable_months >= 5
+    assert stats.profitable_month_fraction > 0.6
+
+
+def test_a_short_history_cannot_claim_a_sustained_record():
+    stats = analyse(WALLET, solid_history(span_days=25.0), SmartMoneyConfig(enabled=True))
+    assert not stats.qualified
+    assert any("cannot claim a sustained record" in d for d in stats.disqualifiers)
+
+
+def test_a_wallet_whose_profit_came_from_one_month_is_rejected():
+    """The exact failure the user's question is about: big total, one good month."""
+    trades = []
+    # Five months of small losses...
+    for i in range(30):
+        mint = f"T{i}"
+        ts = T0 + i * 5 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 0.9, ts + 3600)]
+    # ...then one spectacular month spread over several tokens, so the concentration
+    # gate does not catch it and only the monthly view can.
+    for i in range(6):
+        mint = f"HOT{i}"
+        ts = T0 + 160 * DAY + i * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 9.0, ts + 3600)]
+
+    stats = analyse(WALLET, trades, SmartMoneyConfig(enabled=True))
+    assert stats.realized_pnl_sol > 20  # looks great in total
+    assert not stats.qualified
+    assert any("carried by a few good months" in d for d in stats.disqualifiers)
+
+
+def test_a_decaying_wallet_is_rejected():
+    """Great for four months, flat since. Not what "stable success" means."""
+    trades = []
+    for i in range(20):  # strong first half
+        mint = f"E{i}"
+        ts = T0 + i * 4 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 2.0, ts + 3600)]
+    for i in range(20):  # limp second half
+        mint = f"L{i}"
+        ts = T0 + 100 * DAY + i * 4 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 1.0, ts + 3600)]
+
+    stats = analyse(WALLET, trades, SmartMoneyConfig(enabled=True))
+    assert stats.is_decaying
+    assert not stats.qualified
+    assert any("decaying" in d for d in stats.disqualifiers)
+
+
+def test_decay_rejection_can_be_disabled():
+    config = SmartMoneyConfig(enabled=True, reject_decaying_wallets=False, min_recent_pnl_sol=-99.0)
+    trades = []
+    for i in range(20):
+        mint = f"E{i}"
+        ts = T0 + i * 4 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 2.0, ts + 3600)]
+    for i in range(20):
+        mint = f"L{i}"
+        ts = T0 + 100 * DAY + i * 4 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 1.0, ts + 3600)]
+    stats = analyse(WALLET, trades, config)
+    assert not any("decaying" in d for d in stats.disqualifiers)
+
+
+def test_a_losing_recent_half_is_rejected():
+    trades = []
+    for i in range(20):
+        mint = f"E{i}"
+        ts = T0 + i * 4 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 3.0, ts + 3600)]
+    for i in range(20):
+        mint = f"L{i}"
+        ts = T0 + 100 * DAY + i * 4 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 0.5, ts + 3600)]
+    stats = analyse(WALLET, trades, SmartMoneyConfig(enabled=True))
+    assert stats.recent_pnl_sol < 0
+    assert not stats.qualified
+
+
+def test_a_dormant_wallet_is_rejected():
+    """A record from three months ago is history, not a signal."""
+    trades = solid_history()
+    last = max(t.ts for t in trades)
+    stats = analyse(WALLET, trades, SmartMoneyConfig(enabled=True), now=last + 90 * DAY)
+    assert stats.days_since_last_trade == pytest.approx(90.0, rel=0.01)
+    assert not stats.qualified
+    assert any("record may be historical" in d for d in stats.disqualifiers)
+
+
+def test_a_long_losing_streak_is_rejected():
+    trades = []
+    # Four consecutive losing months, then recovery.
+    for month in range(4):
+        for i in range(4):
+            mint = f"M{month}_{i}"
+            ts = T0 + month * 31 * DAY + i * DAY
+            trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 0.7, ts + 3600)]
+    for month in range(4, 8):
+        for i in range(6):
+            mint = f"W{month}_{i}"
+            ts = T0 + month * 31 * DAY + i * DAY
+            trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 2.5, ts + 3600)]
+
+    stats = analyse(WALLET, trades, SmartMoneyConfig(enabled=True))
+    assert stats.longest_losing_month_streak >= 4
+    assert not stats.qualified
+    assert any("consecutive losing months" in d for d in stats.disqualifiers)
+
+
+def test_the_wallets_own_drawdown_is_measured():
+    trades = []
+    for i in range(20):  # run up
+        mint = f"U{i}"
+        ts = T0 + i * 5 * DAY
+        trades += [buy(mint, 100, 1.0, ts), sell(mint, 100, 2.0, ts + 3600)]
+    for i in range(12):  # then give a lot of it back
+        mint = f"D{i}"
+        ts = T0 + 105 * DAY + i * 5 * DAY
+        trades += [buy(mint, 100, 5.0, ts), sell(mint, 100, 3.5, ts + 3600)]
+
+    stats = compute_stats(WALLET, trades)
+    assert stats.wallet_max_drawdown_pct > 50.0
+
+
+def test_steadiness_raises_the_score():
+    steady = compute_stats(WALLET, solid_history(episodes=36, span_days=200.0))
+    from memebot.smartmoney.analysis import score_wallet
+
+    lumpy = compute_stats(WALLET, solid_history(episodes=36, span_days=200.0))
+    lumpy.profitable_months = 1
+    lumpy.months_covered = 7
+    assert score_wallet(steady) > score_wallet(lumpy)
 
 
 def test_summary_is_serialisable():

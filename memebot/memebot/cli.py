@@ -300,7 +300,11 @@ def _build_wallet_feed(config: Config, clients: dict[str, object]):
         if not key:
             raise RuntimeError("smart_money.feed is 'birdeye' but BIRDEYE_API_KEY is not set")
         return BirdeyeWalletFeed(key, timeout=config.engine.http_timeout_seconds)
-    return SolanaWalletFeed(clients["rpc"], max_transactions=config.smart_money.analysis_transactions)
+    return SolanaWalletFeed(
+        clients["rpc"],
+        max_transactions=config.smart_money.analysis_transactions,
+        max_pages=config.smart_money.max_analysis_pages,
+    )
 
 
 def cmd_wallets(args: argparse.Namespace, config: Config) -> int:
@@ -312,13 +316,25 @@ def cmd_wallets(args: argparse.Namespace, config: Config) -> int:
         log.error("no wallets given and smart_money.watchlist is empty")
         return 1
 
+    import time
+
+    now = time.time()
+    since = now - config.smart_money.lookback_days * 86_400.0
+
     clients = build_clients(config)
     try:
         feed = _build_wallet_feed(config, clients)
         qualified = 0
         for wallet in wallets:
-            trades = feed.recent_trades(wallet, config.smart_money.analysis_transactions)
-            stats = analyse(wallet, trades, config.smart_money)
+            try:
+                trades = feed.recent_trades(
+                    wallet, config.smart_money.analysis_transactions,
+                    since_ts=since, max_pages=config.smart_money.max_analysis_pages,
+                )
+            except TypeError:
+                trades = feed.recent_trades(wallet, config.smart_money.analysis_transactions)
+
+            stats = analyse(wallet, trades, config.smart_money, now=now)
             verdict = "QUALIFIED" if stats.qualified else "REJECTED"
             print(f"\n{wallet}  ->  {verdict}   (score {stats.score:.2f})")
             print(f"  trades analysed     {stats.trades_analysed}")
@@ -329,6 +345,20 @@ def cmd_wallets(args: argparse.Namespace, config: Config) -> int:
             print(f"  median hold         {stats.median_hold_minutes:.1f} min")
             print(f"  best-token share    {stats.best_token_profit_share:.0%} of gross profit")
             print(f"  active days         {stats.active_days}")
+            print(f"  history span        {stats.history_days:.0f} days")
+            print(f"  months profitable   {stats.profitable_months}/{stats.months_covered}")
+            print(f"  own max drawdown    {stats.wallet_max_drawdown_pct:.0f}%")
+            print(
+                f"  recent vs prior     {stats.recent_pnl_sol:+.2f} vs "
+                f"{stats.prior_pnl_sol:+.2f} SOL"
+                f"{'   DECAYING' if stats.is_decaying else ''}"
+            )
+            print(f"  last traded         {stats.days_since_last_trade:.1f} days ago")
+            if stats.monthly_pnl_sol:
+                months = "  ".join(
+                    f"{m}:{v:+.1f}" for m, v in sorted(stats.monthly_pnl_sol.items())
+                )
+                print(f"  by month (SOL)      {months}")
             for reason in stats.disqualifiers:
                 print(f"    [fail] {reason}")
             qualified += bool(stats.qualified)
@@ -345,6 +375,94 @@ def cmd_wallets(args: argparse.Namespace, config: Config) -> int:
         return 1
     finally:
         _close(clients)
+
+
+def cmd_discover(args: argparse.Namespace, config: Config) -> int:
+    """Derive candidate wallets from chain data and audit them over six months."""
+    import time
+
+    from .smartmoney.discover import audit_candidates, gather_candidates
+
+    clients = build_clients(config)
+    try:
+        feed = _build_wallet_feed(config, clients)
+    except RuntimeError as exc:
+        log.error("%s", exc)
+        _close(clients)
+        return 1
+
+    try:
+        candidates = gather_candidates(
+            clients["dexscreener"], clients["rpc"],
+            min_appearances=args.min_appearances,
+            max_winners=args.winners,
+            signatures_per_pool=args.signatures,
+            min_sol_size=args.min_sol,
+        )
+        if not candidates:
+            print(
+                "\nNo candidates. Either the discovery feeds returned nothing reachable, "
+                "or no wallet appeared on enough independent winners.\n"
+                "Try --min-appearances 1 (noisier) or --winners 30 (slower)."
+            )
+            return 1
+
+        print(f"\n{len(candidates)} shortlisted wallet(s). Auditing the top {args.limit}...\n")
+        qualified, rejected = audit_candidates(
+            candidates, feed, config.smart_money, now=time.time(), max_audits=args.limit
+        )
+
+        for candidate, stats in qualified:
+            print(f"QUALIFIED  {candidate.wallet}   score {stats.score:.2f}")
+            _print_wallet_stats(stats, candidate)
+        for candidate, stats in rejected:
+            print(f"rejected   {candidate.wallet}   ({len(stats.disqualifiers)} failed gate(s))")
+            for reason in stats.disqualifiers[:4]:
+                print(f"             - {reason}")
+
+        print(f"\n{len(qualified)} qualified, {len(rejected)} rejected.")
+        if qualified:
+            flags = " ".join(f"--wallet {c.wallet}" for c, _ in qualified[:5])
+            print(f"\nPaper trade them before risking anything:\n  python -m memebot copy {flags}")
+        else:
+            print(
+                "\nZero qualified is a normal and healthy outcome. The six-month gates are "
+                "strict on purpose; a wallet that is hot this week almost never passes them."
+            )
+        return 0
+    finally:
+        _close(clients)
+
+
+def _print_wallet_stats(stats, candidate=None) -> None:
+    if candidate is not None:
+        print(
+            f"  seen on {candidate.appearances} winner(s), "
+            f"{candidate.total_sol_bought:.1f} SOL deployed"
+        )
+    print(
+        f"  {stats.closed_episodes} round trips over {stats.history_days:.0f} days, "
+        f"{stats.distinct_tokens} tokens"
+    )
+    print(
+        f"  {stats.realized_pnl_sol:+.2f} SOL   win rate {stats.win_rate:.0%}   "
+        f"median hold {stats.median_hold_minutes:.0f}m"
+    )
+    print(
+        f"  profitable in {stats.profitable_months}/{stats.months_covered} months   "
+        f"own drawdown {stats.wallet_max_drawdown_pct:.0f}%   "
+        f"best token = {stats.best_token_profit_share:.0%} of profit"
+    )
+    print(
+        f"  recent half {stats.recent_pnl_sol:+.2f} SOL vs prior half "
+        f"{stats.prior_pnl_sol:+.2f} SOL"
+        f"{'   DECAYING' if stats.is_decaying else ''}"
+    )
+    if stats.monthly_pnl_sol:
+        months = "  ".join(
+            f"{m[-2:]}:{v:+.1f}" for m, v in sorted(stats.monthly_pnl_sol.items())
+        )
+        print(f"  by month: {months}")
 
 
 def cmd_copy(args: argparse.Namespace, config: Config) -> int:
@@ -667,6 +785,19 @@ def build_parser() -> argparse.ArgumentParser:
     wallets = sub.add_parser("wallets", help="analyse wallets for copy trading")
     wallets.add_argument("wallets", nargs="*", help="addresses (default: config watchlist)")
     wallets.set_defaults(func=cmd_wallets)
+
+    discover = sub.add_parser(
+        "discover", help="find candidate wallets from chain data, then audit them"
+    )
+    discover.add_argument("--winners", type=int, default=15, help="recent winners to probe")
+    discover.add_argument(
+        "--min-appearances", type=int, default=2,
+        help="how many independent winners a wallet must appear on",
+    )
+    discover.add_argument("--signatures", type=int, default=100, help="swaps to read per pool")
+    discover.add_argument("--min-sol", type=float, default=0.5, help="ignore buys below this size")
+    discover.add_argument("--limit", type=int, default=25, help="wallets to fully audit")
+    discover.set_defaults(func=cmd_discover)
 
     copy = sub.add_parser("copy", help="trade on tracked-wallet consensus")
     copy.add_argument("--wallet", action="append", default=[], help="repeatable")

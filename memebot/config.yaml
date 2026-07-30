@@ -115,8 +115,14 @@ smart_money:
   enabled: false                 # `memebot copy` turns this on
   feed: rpc                      # rpc (no key needed) | birdeye (BIRDEYE_API_KEY)
   max_wallets_tracked: 25
-  analysis_transactions: 200
   refresh_minutes: 360           # re-check followed wallets; records decay
+
+  # Judging six-month consistency needs six months of trades. On the RPC feed this
+  # costs one getTransaction per signature — 600 calls per wallet. Use a paid RPC
+  # endpoint or the birdeye feed; the public RPC will rate-limit you.
+  analysis_transactions: 600
+  max_analysis_pages: 12
+  lookback_days: 210             # wider than the 6-month claim, so edges are visible
 
   # --- qualification: every one of these is a HARD gate ---------------------
   min_closed_trades: 20          # a handful of wins is a coin that came up heads
@@ -127,6 +133,21 @@ smart_money:
   max_single_token_profit_share: 0.50   # one 100x is luck, not a process
   min_median_hold_minutes: 10    # below this it's a sniper: its edge is latency, not insight
   max_median_hold_minutes: 2880  # above this the signal is too slow to copy
+
+  # --- temporal stability: "worked CONSISTENTLY", not "big all-time total" --
+  # A wallet that made everything in month one and bled since has the same total
+  # PnL as one that earned steadily. Only the second is worth copying, and nothing
+  # in the gates above can tell them apart.
+  # Measured cost: skilled-wallet recall drops from ~97% to ~83% once these are on.
+  # That is the price of demanding sustained success, and it is worth paying.
+  min_history_days: 150          # cannot claim a 6-month record from 3 weeks
+  min_months_covered: 5
+  min_profitable_month_fraction: 0.60   # e.g. profitable in 4+ of 6 months
+  max_losing_month_streak: 2
+  max_wallet_drawdown_pct: 60    # drawdown of THEIR equity curve; copying it is your ride
+  max_days_since_last_trade: 14  # a dormant wallet's record is history, not a signal
+  reject_decaying_wallets: true  # recent half must not be far worse than the earlier half
+  min_recent_pnl_sol: 0.0        # and it must not be a loss
 
   # --- signal gates --------------------------------------------------------
   min_wallets_consensus: 2       # one wallet is an opinion; several is a signal

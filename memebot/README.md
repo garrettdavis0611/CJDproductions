@@ -63,6 +63,7 @@ python -m memebot scan                    # screen live candidates, place no ord
 python -m memebot paper                   # simulated fills, real costs  (start here)
 python -m memebot backtest                # replay what `scan`/`paper` recorded
 python -m memebot simulate                # drive the engine against synthetic markets
+python -m memebot discover                # find candidate wallets from chain data
 python -m memebot wallets <address>...    # does this wallet survive the luck filters?
 python -m memebot copy --wallet <addr>    # trade on tracked-wallet consensus (paper)
 python -m memebot live                    # real money (heavily gated)
@@ -231,11 +232,34 @@ signal is that several people with a **luck-filtered** record just bought the sa
 thing, recently, at a price you can still get.
 
 ```bash
+python -m memebot discover                   # find candidates from chain data
 python -m memebot wallets <address>          # audit a wallet before following it
 python -m memebot copy --wallet <address>    # paper-trade their consensus
 python -m memebot simulate --selection       # do the luck filters actually work?
 python -m memebot simulate --copy            # what is each defence worth?
 ```
+
+### Finding candidates without trusting anyone
+
+`memebot discover` derives candidates from the chain rather than from a leaderboard:
+
+1. Find tokens that recently ran up hard — the **winners**. (We are not buying these;
+   a token already up 40% is exactly what the screen refuses. They are probes.)
+2. Read each winner's pool signature history to see who bought it, early, with size.
+   Every swap touches the pool account, so its history is the trade tape.
+3. Keep wallets that appear on **several independent winners**. One correct call is
+   noise; showing up on four separate winners is a prior worth testing.
+4. Hand every survivor to the full six-month audit. Discovery only proposes.
+
+```bash
+python -m memebot discover --winners 20 --min-appearances 3 --limit 25
+```
+
+**Do not skip step 4, and do not take addresses from Telegram, listicles, or
+leaderboard screenshots.** An address someone is publicising is frequently a wallet
+that *wants* to be followed, which is the exit-liquidity setup rather than a tip.
+There is a test asserting that a wallet appearing on ten winners is still rejected if
+its history does not hold up.
 
 ### The problem with "follow profitable wallets"
 
@@ -259,6 +283,35 @@ Round trips are counted as *episodes* — position goes from zero, up, and back 
 — so a wallet that averaged into one winner does not register as twenty separate
 wins. Sells of tokens never seen bought are ignored, or airdrops would read as free
 profit.
+
+### Sustained success, not a big all-time total
+
+The gates above still admit a wallet that made everything in one month and has bled
+since — its aggregate win rate and PnL look identical to a wallet that earned
+steadily. Only a *temporal* view separates them, so there is a second set of gates:
+
+| Gate | Default | What it rejects |
+|---|---|---|
+| `min_history_days` | 150 | You cannot claim a six-month record from three weeks. |
+| `min_months_covered` | 5 | |
+| `min_profitable_month_fraction` | 60% | **A total carried by one or two hot months.** |
+| `max_losing_month_streak` | 2 | |
+| `max_wallet_drawdown_pct` | 60% | Drawdown of *their* equity curve — copying it is your ride. |
+| `max_days_since_last_trade` | 14 | A dormant wallet's record is history, not a signal. |
+| `reject_decaying_wallets` | on | Recent half earning far less than the earlier half. |
+| `min_recent_pnl_sol` | 0 | The recent half must not be a loss. |
+
+`memebot wallets` prints the month-by-month PnL breakdown so you can see the shape
+rather than trust the summary.
+
+**These gates cost recall, and the cost is measured:** skilled-wallet acceptance falls
+from ~97% to **~83%** once they are on. Some genuinely good traders have a losing
+month and get cut. For deciding where to put money, a low false-accept rate is worth
+more than recall — but that is a judgement, and the numbers are there if you disagree.
+
+Judging six months needs six months of data, so `analysis_transactions` defaults to
+600 and the RPC feed paginates backwards through signature history. That is one
+`getTransaction` per signature — **use a paid RPC endpoint or the Birdeye feed.**
 
 ### Do the filters work? Measured, not asserted
 
@@ -437,6 +490,7 @@ memebot/
     filters.py         interprets them (hard fails vs soft flags)
   smartmoney/
     analysis.py        reconstruct round trips; separate skill from luck
+    discover.py        derive candidates from chain data, not from listicles
     tracker.py         consensus, freshness/drift gates, attribution, demotion
     watcher.py         polls followed wallets for new trades
     simulate.py        selection confusion matrix + defence A/B
@@ -458,7 +512,7 @@ memebot/
 ## Tests
 
 ```bash
-python -m pytest -q      # 235 tests
+python -m pytest -q      # 266 tests
 ```
 
 The screening and cost-model tests are the important ones: each screening test

@@ -77,9 +77,11 @@ def synth_history(
     """Generate a plausible trade history for a wallet of a known type."""
     trades: list[WalletTrade] = []
 
+    # Histories span six-plus months: the temporal-stability gates cannot be
+    # evaluated on a three-week sample, and neither can a claim of sustained success.
     if archetype is Archetype.SKILLED:
-        count = rng.randint(30, 60)
-        days = rng.randint(14, 40)
+        count = rng.randint(36, 70)
+        days = rng.randint(185, 240)
         for i in range(count):
             win = rng.random() < 0.58
             ratio = rng.uniform(1.25, 2.6) if win else rng.uniform(0.72, 0.95)
@@ -91,8 +93,8 @@ def synth_history(
     elif archetype is Archetype.LUCKY:
         # A losing coin-flipper — but with one enormous winner, which is precisely the
         # shape that fools a PnL leaderboard.
-        count = rng.randint(12, 40)
-        days = rng.randint(2, 12)
+        count = rng.randint(20, 45)
+        days = rng.randint(160, 220)
         for i in range(count):
             win = rng.random() < 0.33
             ratio = rng.uniform(1.1, 1.8) if win else rng.uniform(0.55, 0.9)
@@ -106,8 +108,8 @@ def synth_history(
         )
 
     elif archetype is Archetype.SNIPER:
-        count = rng.randint(40, 90)
-        days = rng.randint(10, 30)
+        count = rng.randint(50, 95)
+        days = rng.randint(185, 240)
         for i in range(count):
             win = rng.random() < 0.62
             ratio = rng.uniform(1.2, 2.2) if win else rng.uniform(0.75, 0.95)
@@ -118,10 +120,11 @@ def synth_history(
             )
 
     elif archetype is Archetype.FARMER:
-        # Built to pass every a-priori gate: broad, consistent, long enough history.
-        # Its profits come from followers, which no historical metric can reveal.
-        count = rng.randint(30, 55)
-        days = rng.randint(12, 30)
+        # Built to pass every a-priori gate: broad, consistent, long enough history,
+        # steady month to month. Its profits come from followers, which no historical
+        # metric can reveal.
+        count = rng.randint(36, 60)
+        days = rng.randint(185, 240)
         for i in range(count):
             win = rng.random() < 0.60
             ratio = rng.uniform(1.2, 2.0) if win else rng.uniform(0.8, 0.96)
