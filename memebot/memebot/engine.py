@@ -53,6 +53,8 @@ class TradingEngine:
         safety: SafetyInspector | None = None,
         rpc: SolanaRpc | None = None,
         clock=time.time,
+        wallet_watcher=None,
+        tracker=None,
     ) -> None:
         self.config = config
         self.dexscreener = dexscreener
@@ -63,6 +65,8 @@ class TradingEngine:
         self.safety = safety
         self.rpc = rpc
         self._clock = clock
+        self.wallet_watcher = wallet_watcher
+        self.tracker = tracker
 
         self.history: dict[str, deque[TokenSnapshot]] = {}
         self._rejected: dict[str, tuple[float, str]] = {}
@@ -112,6 +116,16 @@ class TradingEngine:
         now = self._clock()
         self.cycles += 1
         self.risk.roll_day_if_needed(now)
+
+        # Wallet activity is polled before anything else: a followed wallet selling is
+        # an exit signal, and exits outrank entries.
+        if self.wallet_watcher is not None:
+            try:
+                new_trades = self.wallet_watcher.poll(now)
+                if new_trades:
+                    log.info("observed %d new trade(s) from tracked wallets", new_trades)
+            except Exception as exc:
+                log.warning("wallet watcher failed: %s", exc)
 
         self.manage_positions(now)
 
@@ -200,6 +214,14 @@ class TradingEngine:
 
         self.portfolio.apply_buy(fill, symbol=snapshot.symbol, entry_liquidity_usd=snapshot.liquidity_usd)
         self.risk.record_entry(now)
+
+        # Remember which wallets we bought on behalf of, so the outcome lands on them.
+        if self.tracker is not None:
+            wallets_for = getattr(self.strategy, "wallets_for", None)
+            if callable(wallets_for):
+                credited = wallets_for(mint)
+                if credited:
+                    self.tracker.credit_entry(mint, credited)
         log.info(
             "BUY  %-10s $%.2f @ $%.8g (score %.2f, slip %.0f bps, fee $%.3f) | %s",
             snapshot.symbol or mint[:8], fill.qty * fill.price_usd, fill.price_usd,
@@ -282,9 +304,15 @@ class TradingEngine:
             return
 
         symbol = position.symbol or position.mint[:8]
+        mint = position.mint
         trade = self.portfolio.apply_sell(fill, exit_reason=reason)
         if trade is not None:
-            self.risk.record_exit(position.mint, trade.pnl_usd, now, full_exit=full_exit)
+            self.risk.record_exit(mint, trade.pnl_usd, now, full_exit=full_exit)
+            # Attribute the result to the wallets that triggered the entry. This is the
+            # only defence against a wallet using our buys as its exit liquidity.
+            if self.tracker is not None and full_exit:
+                for demoted in self.tracker.record_outcome(mint, trade.pnl_usd):
+                    log.warning("stopped following %s after attributed losses", demoted[:8])
             log.info(
                 "SELL %-10s %s $%.2f -> $%.2f (%+.1f%%, %.0fm) | %s",
                 symbol, "ALL " if full_exit else f"{fraction:.0%}",

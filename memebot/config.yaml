@@ -99,6 +99,60 @@ execution:
   live_max_trade_usd: 50         # absolute clamp, independent of risk sizing
   confirm_timeout_seconds: 60
 
+# --------------------------------------------------------------------------
+# Copy trading: follow wallets with a demonstrated record.
+#
+# This is a different bet from the momentum strategy above. It does not try to
+# predict price from price; it follows people who have already shown skill.
+#
+# The thresholds exist to separate SKILL from LUCK. In any large population of
+# gamblers, some will have spectacular records by chance, and a PnL leaderboard
+# surfaces exactly those. Loosening these does not find more good wallets — it
+# finds more lucky ones. Measured effect of relaxing the concentration gate:
+# lucky-wallet false accepts go from 0% to well above it.
+# --------------------------------------------------------------------------
+smart_money:
+  enabled: false                 # `memebot copy` turns this on
+  feed: rpc                      # rpc (no key needed) | birdeye (BIRDEYE_API_KEY)
+  max_wallets_tracked: 25
+  analysis_transactions: 200
+  refresh_minutes: 360           # re-check followed wallets; records decay
+
+  # --- qualification: every one of these is a HARD gate ---------------------
+  min_closed_trades: 20          # a handful of wins is a coin that came up heads
+  min_distinct_tokens: 10
+  min_realized_pnl_sol: 5.0
+  min_win_rate: 0.45
+  min_active_days: 5             # a record built in one session is one session's luck
+  max_single_token_profit_share: 0.50   # one 100x is luck, not a process
+  min_median_hold_minutes: 10    # below this it's a sniper: its edge is latency, not insight
+  max_median_hold_minutes: 2880  # above this the signal is too slow to copy
+
+  # --- signal gates --------------------------------------------------------
+  min_wallets_consensus: 2       # one wallet is an opinion; several is a signal
+  consensus_window_seconds: 900
+  max_signal_age_seconds: 180    # you are ALWAYS later than them; past this it's over
+  max_price_drift_pct: 12        # refuse once price ran this far past their entry —
+                                 # this is the gate that stops you being exit liquidity
+  max_adverse_drift_pct: 15      # also refuse if they're already well underwater
+
+  # --- exits ---------------------------------------------------------------
+  # Measured as the single most valuable defence: without it, farmer-attributed
+  # PnL went from +$39 to -$290 across 10 simulated runs.
+  exit_on_wallet_exit: true
+  min_wallets_selling: 1
+  exit_window_seconds: 900
+
+  # --- attribution and demotion -------------------------------------------
+  # You cannot detect a follower-farmer from its history — ~97% of them pass the
+  # gates above, by construction. You can only measure the outcome and stop.
+  min_attributed_trades: 5
+  demote_below_pnl_usd: 0.0
+  demote_below_win_rate: 0.30
+  state_file: smart_money.json
+
+  watchlist: []                  # addresses to analyse on startup
+
 engine:
   poll_seconds: 30
   max_candidates_per_cycle: 25

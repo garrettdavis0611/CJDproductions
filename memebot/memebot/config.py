@@ -142,6 +142,62 @@ class ExecutionConfig:
 
 
 @dataclass
+class SmartMoneyConfig:
+    """Copy trading: follow wallets with a demonstrated record.
+
+    The thresholds below exist to separate skill from luck. In any large population
+    of gamblers some will have spectacular records by chance, and a naive PnL
+    leaderboard surfaces exactly those. Loosening these does not find you more good
+    wallets; it finds you more lucky ones.
+    """
+
+    enabled: bool = False
+    feed: str = "rpc"  # rpc | birdeye
+    max_wallets_tracked: int = 25
+    analysis_transactions: int = 200
+    """How many recent transactions to reconstruct per wallet."""
+    refresh_minutes: float = 360.0
+    """How often to re-analyse followed wallets. A record can decay."""
+
+    # --- qualification: every one of these is a hard gate ---------------------
+    min_closed_trades: int = 20
+    min_distinct_tokens: int = 10
+    min_realized_pnl_sol: float = 5.0
+    min_win_rate: float = 0.45
+    min_active_days: int = 5
+    max_single_token_profit_share: float = 0.50
+    min_median_hold_minutes: float = 10.0
+    """Below this the wallet is a sniper. Its edge is latency, which you cannot copy."""
+    max_median_hold_minutes: float = 2_880.0
+    """Above this the signal is too slow to be actionable."""
+
+    # --- signal gates --------------------------------------------------------
+    min_wallets_consensus: int = 2
+    consensus_window_seconds: float = 900.0
+    max_signal_age_seconds: float = 180.0
+    """You are always later than the wallet. Past this, the move already happened."""
+    max_price_drift_pct: float = 12.0
+    """Refuse to buy once price has run this far above their entry. This is the gate
+    that stops you becoming someone's exit liquidity."""
+    max_adverse_drift_pct: float = 15.0
+    """Also refuse if they are already well underwater — the thesis is not working."""
+
+    # --- exits ---------------------------------------------------------------
+    exit_on_wallet_exit: bool = True
+    min_wallets_selling: int = 1
+    exit_window_seconds: float = 900.0
+
+    # --- attribution and demotion -------------------------------------------
+    min_attributed_trades: int = 5
+    demote_below_pnl_usd: float = 0.0
+    demote_below_win_rate: float = 0.30
+    state_file: str = "smart_money.json"
+
+    watchlist: list[str] = field(default_factory=list)
+    """Wallets to analyse on startup. They still have to pass qualification."""
+
+
+@dataclass
 class EngineConfig:
     poll_seconds: float = 30.0
     max_candidates_per_cycle: int = 25
@@ -163,6 +219,7 @@ class Config:
     costs: CostConfig = field(default_factory=CostConfig)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
     engine: EngineConfig = field(default_factory=EngineConfig)
+    smart_money: SmartMoneyConfig = field(default_factory=SmartMoneyConfig)
 
     def validate(self) -> None:
         r, s, c = self.risk, self.strategy, self.costs
@@ -188,6 +245,30 @@ class Config:
             raise ConfigError("costs.sol_price_usd must be positive")
         if not 0 <= c.failed_tx_probability < 1:
             raise ConfigError("costs.failed_tx_probability must be in [0, 1)")
+
+        sm = self.smart_money
+        if sm.enabled:
+            if sm.feed not in ("rpc", "birdeye"):
+                raise ConfigError("smart_money.feed must be 'rpc' or 'birdeye'")
+            if sm.min_wallets_consensus < 1:
+                raise ConfigError("smart_money.min_wallets_consensus must be >= 1")
+            if sm.min_closed_trades < 10:
+                raise ConfigError(
+                    "smart_money.min_closed_trades below 10 cannot distinguish skill from "
+                    "luck — a wallet with a handful of wins is a coin that came up heads"
+                )
+            if not 0 < sm.max_single_token_profit_share <= 1.0:
+                raise ConfigError("smart_money.max_single_token_profit_share must be in (0, 1]")
+            if sm.max_price_drift_pct <= 0:
+                raise ConfigError(
+                    "smart_money.max_price_drift_pct must be positive — without a drift gate "
+                    "you will copy wallets after their move and become their exit liquidity"
+                )
+            if sm.min_median_hold_minutes <= 0:
+                raise ConfigError(
+                    "smart_money.min_median_hold_minutes must be positive — copying snipers "
+                    "means competing on latency you do not have"
+                )
 
         # A round trip that costs more than the take-profit target can never win.
         round_trip_bps = 2 * (c.dex_fee_bps + c.jupiter_platform_fee_bps + c.extra_slippage_bps)

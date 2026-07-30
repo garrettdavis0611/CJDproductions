@@ -111,6 +111,12 @@ class _SimToken:
     last_log_return: float = 0.0
     rugged: bool = False
     rug_stage: int = 0
+    # Hooks used by the copy-trading harness: a skilled wallet's pick trends, and a
+    # follower-farming wallet's pick collapses once it has its exit liquidity.
+    boost_cycles: int = 0
+    boost_drift: float = 0.0
+    dump_in: int = -1
+    dumping: bool = False
 
     def price_change_pct(self, cycles_back: int) -> float:
         if len(self.prices) <= cycles_back:
@@ -162,6 +168,14 @@ class SimulatedMarket:
                 self._advance_rug(token)
                 continue
 
+            if token.dump_in == 0 and not token.dumping:
+                token.dumping = True
+            if token.dumping:
+                self._advance_dump(token)
+                continue
+            if token.dump_in > 0:
+                token.dump_in -= 1
+
             if self.rng.random() < r.rug_probability_per_cycle:
                 token.rugged = True
                 self.rug_events.append((self.now, token.mint))
@@ -177,6 +191,9 @@ class SimulatedMarket:
             log_return = (
                 r.drift_per_cycle - convexity + r.momentum_phi * token.last_log_return + shock
             )
+            if token.boost_cycles > 0:
+                log_return += token.boost_drift
+                token.boost_cycles -= 1
             token.last_log_return = log_return
             token.price = max(1e-12, token.price * math.exp(log_return))
             token.prices.append(token.price)
@@ -184,6 +201,19 @@ class SimulatedMarket:
             liquidity_move = r.liquidity_drift_per_cycle + self.rng.gauss(0.0, r.liquidity_vol_per_cycle)
             # Liquidity follows price somewhat: buyers add, sellers remove.
             token.liquidity = max(500.0, token.liquidity * math.exp(liquidity_move + 0.25 * log_return))
+
+    def _advance_dump(self, token: _SimToken) -> None:
+        """A wallet dumping into its followers.
+
+        Deliberately different from a rug: the price collapses but the pool stays,
+        because the seller is trading *through* the liquidity rather than removing it.
+        That means the liquidity-drain exit will NOT save you here — only noticing that
+        the wallet sold will. It is the case that separates the two defences.
+        """
+        token.price = max(1e-12, token.price * 0.55)
+        token.liquidity = max(500.0, token.liquidity * 0.92)
+        token.last_log_return = -0.6
+        token.prices.append(token.price)
 
     def _advance_rug(self, token: _SimToken) -> None:
         """Liquidity leaves first, then the price collapses — the real sequence."""

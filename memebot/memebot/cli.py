@@ -292,6 +292,167 @@ def cmd_costs(_args: argparse.Namespace, config: Config) -> int:
     return 0
 
 
+def _build_wallet_feed(config: Config, clients: dict[str, object]):
+    from .datasources.wallet_feed import BirdeyeWalletFeed, SolanaWalletFeed
+
+    if config.smart_money.feed == "birdeye":
+        key = os.environ.get("BIRDEYE_API_KEY")
+        if not key:
+            raise RuntimeError("smart_money.feed is 'birdeye' but BIRDEYE_API_KEY is not set")
+        return BirdeyeWalletFeed(key, timeout=config.engine.http_timeout_seconds)
+    return SolanaWalletFeed(clients["rpc"], max_transactions=config.smart_money.analysis_transactions)
+
+
+def cmd_wallets(args: argparse.Namespace, config: Config) -> int:
+    """Analyse wallets and report whether they survive the luck filters."""
+    from .smartmoney.analysis import analyse
+
+    wallets = list(args.wallets) or list(config.smart_money.watchlist)
+    if not wallets:
+        log.error("no wallets given and smart_money.watchlist is empty")
+        return 1
+
+    clients = build_clients(config)
+    try:
+        feed = _build_wallet_feed(config, clients)
+        qualified = 0
+        for wallet in wallets:
+            trades = feed.recent_trades(wallet, config.smart_money.analysis_transactions)
+            stats = analyse(wallet, trades, config.smart_money)
+            verdict = "QUALIFIED" if stats.qualified else "REJECTED"
+            print(f"\n{wallet}  ->  {verdict}   (score {stats.score:.2f})")
+            print(f"  trades analysed     {stats.trades_analysed}")
+            print(f"  closed round trips  {stats.closed_episodes}")
+            print(f"  distinct tokens     {stats.distinct_tokens}")
+            print(f"  realized PnL        {stats.realized_pnl_sol:+.3f} SOL")
+            print(f"  win rate            {stats.win_rate:.0%}")
+            print(f"  median hold         {stats.median_hold_minutes:.1f} min")
+            print(f"  best-token share    {stats.best_token_profit_share:.0%} of gross profit")
+            print(f"  active days         {stats.active_days}")
+            for reason in stats.disqualifiers:
+                print(f"    [fail] {reason}")
+            qualified += bool(stats.qualified)
+
+        print(f"\n{qualified}/{len(wallets)} wallet(s) qualified.")
+        if not qualified:
+            print(
+                "Rejections are the normal outcome. Most wallets with impressive PnL fail "
+                "the concentration or sample-size gates, which is exactly what they are for."
+            )
+        return 0
+    except RuntimeError as exc:
+        log.error("%s", exc)
+        return 1
+    finally:
+        _close(clients)
+
+
+def cmd_copy(args: argparse.Namespace, config: Config) -> int:
+    """Run the loop using wallet consensus instead of price momentum."""
+    config.smart_money.enabled = True
+    if args.live:
+        config.execution.mode = "live"
+    else:
+        config.execution.mode = "paper"
+
+    wallets = list(args.wallet) or list(config.smart_money.watchlist)
+    if not wallets:
+        log.error(
+            "no wallets to follow. Pass --wallet <address> (repeatable) or set "
+            "smart_money.watchlist in the config."
+        )
+        return 1
+
+    from .smartmoney.tracker import SmartMoneyTracker
+    from .smartmoney.watcher import WalletWatcher
+    from .strategy.copytrade import CopyTradeStrategy
+
+    clients = build_clients(config)
+    data_dir = Path(config.engine.data_dir)
+    try:
+        feed = _build_wallet_feed(config, clients)
+    except RuntimeError as exc:
+        log.error("%s", exc)
+        _close(clients)
+        return 1
+
+    tracker = SmartMoneyTracker(
+        config.smart_money, state_path=data_dir / config.smart_money.state_file
+    )
+    tracker.load()
+    watcher = WalletWatcher(
+        config.smart_money, feed, tracker,
+        sol_price_provider=lambda: _sol_price(clients["dexscreener"]),
+    )
+
+    log.info("analysing %d candidate wallet(s)...", len(wallets))
+    followed = watcher.bootstrap(wallets)
+    if not followed:
+        log.error(
+            "none of the %d candidate wallets qualified — refusing to trade. "
+            "Run `memebot wallets <address>` to see why.", len(wallets)
+        )
+        tracker.save()
+        _close(clients)
+        return 1
+    log.info("following %d wallet(s)", len(followed))
+
+    inspector = SafetyInspector(
+        config.screening, rpc=clients["rpc"], rugcheck=clients["rugcheck"],
+        jupiter=clients["jupiter"], slippage_bps=config.execution.slippage_bps,
+    )
+    portfolio = Portfolio(config.risk.starting_equity_usd, trade_log_path=data_dir / "trades.jsonl")
+
+    if config.execution.mode == "live":
+        from .execution.jupiter_broker import JupiterBroker
+
+        broker = JupiterBroker(
+            config.execution, config.costs, jupiter=clients["jupiter"], rpc=clients["rpc"],
+            sol_price_provider=lambda: _sol_price(clients["dexscreener"]),
+        )
+    else:
+        from .execution.paper import PaperBroker
+
+        broker = PaperBroker(config.costs)
+
+    engine = TradingEngine(
+        config=config,
+        dexscreener=clients["dexscreener"],
+        broker=broker,
+        portfolio=portfolio,
+        risk=RiskManager(config.risk),
+        strategy=CopyTradeStrategy(config.strategy, config.smart_money, tracker),
+        safety=inspector,
+        rpc=clients["rpc"],
+        wallet_watcher=watcher,
+        tracker=tracker,
+    )
+
+    try:
+        engine.run_forever(max_cycles=args.cycles)
+    finally:
+        tracker.save()
+        _report(engine)
+        _print_attribution(tracker)
+        _close(clients)
+    return 0
+
+
+def _print_attribution(tracker) -> None:
+    records = [a for a in tracker.attribution.values() if a.copied_trades]
+    if not records:
+        return
+    print("\nper-wallet attribution (did following them actually pay?)")
+    for record in sorted(records, key=lambda a: a.realized_pnl_usd):
+        flag = "  DEMOTED" if record.demoted else ""
+        print(
+            f"  {record.wallet[:10]}  {record.copied_trades:3d} copied  "
+            f"${record.realized_pnl_usd:+8.2f}  win {record.win_rate:.0%}{flag}"
+        )
+        if record.demoted:
+            print(f"      {record.demoted_reason}")
+
+
 def cmd_simulate(args: argparse.Namespace, config: Config) -> int:
     """Drive the real engine against a synthetic market.
 
@@ -299,6 +460,11 @@ def cmd_simulate(args: argparse.Namespace, config: Config) -> int:
     regimes test the defences, and `random_walk` is the null hypothesis.
     """
     from .simulator import REGIMES, Regime, aggregate, sweep
+
+    if args.selection:
+        return _run_selection_experiment(config, args)
+    if args.copy:
+        return _run_copy_experiment(args)
 
     def fresh_config() -> Config:
         cfg = load_config(Path(args.config) if Path(args.config).exists() else None)
@@ -332,6 +498,87 @@ def cmd_simulate(args: argparse.Namespace, config: Config) -> int:
         "shows the strategy can capture autocorrelation that exists — it is NOT "
         "evidence that real meme coins are autocorrelated. Only recorded live data "
         "can answer that."
+    )
+    return 0
+
+
+def _run_selection_experiment(config: Config, args: argparse.Namespace) -> int:
+    """Confusion matrix for the wallet luck filters, against known ground truth."""
+    from .smartmoney.simulate import selection_experiment
+
+    result = selection_experiment(config.smart_money, per_archetype=args.population, seed=0)
+    print(f"\nWallet selection, {result['per_archetype']} synthetic wallets per archetype\n")
+    print(f"  {'archetype':10s} {'accepted':>9s} {'rejected':>9s}   verdict")
+    verdicts = {
+        "skilled": "want these",
+        "lucky": "must reject — no edge, just variance",
+        "sniper": "must reject — edge is latency we cannot copy",
+        "farmer": "PASSES by design — only demotion catches these",
+    }
+    for name, bucket in result["by_archetype"].items():  # type: ignore[union-attr]
+        print(
+            f"  {name:10s} {bucket['accepted']:9d} {bucket['rejected']:9d}   {verdicts.get(name, '')}"
+        )
+    print(f"\n  skilled recall           {result['skilled_recall_pct']:.1f}%")
+    print(f"  lucky false accepts      {result['lucky_false_accept_pct']:.1f}%")
+    print(f"  sniper false accepts     {result['sniper_false_accept_pct']:.1f}%")
+    print(f"  farmer false accepts     {result['farmer_false_accept_pct']:.1f}%  (expected: high)")
+    print(f"  of accepted, farmers     {result['accepted_that_are_farmers_pct']:.1f}%")
+    print(
+        "\n  Farmers are supposed to pass: nothing in a trade history reveals that a wallet "
+        "\n  intends to dump on its followers. That is what attribution and demotion are for."
+    )
+    return 0
+
+
+def _run_copy_experiment(args: argparse.Namespace) -> int:
+    """A/B each copy-trade defence against a market containing skilled wallets and farmers."""
+    import statistics
+
+    from .smartmoney.simulate import copy_experiment
+
+    variants = [
+        ("all defences ON", {}),
+        ("drift gate OFF", {"drift_gate": False}),
+        ("wallet-exit signal OFF", {"wallet_exit": False}),
+        ("demotion OFF", {"demotion": False}),
+        ("all defences OFF", {"drift_gate": False, "wallet_exit": False, "demotion": False}),
+    ]
+    seeds = list(range(args.seeds))
+    print(f"\nCopy-trade defences, {len(seeds)} runs x {args.cycles} cycles\n")
+
+    for label, toggles in variants:
+        runs = [
+            copy_experiment(
+                load_config(Path(args.config) if Path(args.config).exists() else None),
+                cycles=args.cycles, seed=seed, universe_size=args.universe, **toggles,
+            )
+            for seed in seeds
+        ]
+        returns = [float(r["total_return_pct"]) for r in runs]
+        trades = [int(r["trades"]) for r in runs]
+        print(
+            f"  {label:24s} median {statistics.median(returns):+7.2f}%  "
+            f"mean {sum(returns) / len(returns):+7.2f}%  "
+            f"worst {min(returns):+7.2f}%  "
+            f"profitable {sum(1 for r in returns if r > 0)}/{len(runs)}  "
+            f"trades {statistics.median(trades):.0f}"
+        )
+        totals: dict[str, dict[str, float]] = {}
+        for run in runs:
+            for archetype, bucket in (run.get("by_archetype") or {}).items():  # type: ignore[union-attr]
+                acc = totals.setdefault(archetype, {"copied": 0.0, "pnl": 0.0, "demoted": 0.0})
+                acc["copied"] += bucket["copied"]
+                acc["pnl"] += bucket["pnl_usd"]
+                acc["demoted"] += bucket["demoted_wallets"]
+        for archetype, acc in sorted(totals.items()):
+            print(
+                f"      {archetype:8s} copied {int(acc['copied']):4d}  "
+                f"attributed ${acc['pnl']:+9.2f}  demoted {int(acc['demoted']):2d}"
+            )
+    print(
+        "\n  The skilled wallets here have real foresight because the harness gives it to "
+        "\n  them. This measures whether the defences work, not whether such wallets exist."
     )
     return 0
 
@@ -417,6 +664,16 @@ def build_parser() -> argparse.ArgumentParser:
     costs = sub.add_parser("costs", help="show the round-trip cost model")
     costs.set_defaults(func=cmd_costs)
 
+    wallets = sub.add_parser("wallets", help="analyse wallets for copy trading")
+    wallets.add_argument("wallets", nargs="*", help="addresses (default: config watchlist)")
+    wallets.set_defaults(func=cmd_wallets)
+
+    copy = sub.add_parser("copy", help="trade on tracked-wallet consensus")
+    copy.add_argument("--wallet", action="append", default=[], help="repeatable")
+    copy.add_argument("--cycles", type=int, default=None)
+    copy.add_argument("--live", action="store_true", help="real money (still gated)")
+    copy.set_defaults(func=cmd_copy)
+
     simulate = sub.add_parser("simulate", help="run the engine against a synthetic market")
     simulate.add_argument(
         "--regime", default="all",
@@ -430,6 +687,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="disable the liquidity-drain exit, to measure what it is worth",
     )
     simulate.add_argument("--json-out", default=None, help="write full results to this path")
+    simulate.add_argument(
+        "--selection", action="store_true",
+        help="instead: confusion matrix for the wallet luck filters",
+    )
+    simulate.add_argument(
+        "--copy", action="store_true", help="instead: A/B the copy-trade defences"
+    )
+    simulate.add_argument(
+        "--population", type=int, default=150, help="wallets per archetype for --selection",
+    )
     simulate.set_defaults(func=cmd_simulate)
 
     return parser

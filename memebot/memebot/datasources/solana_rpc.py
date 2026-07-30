@@ -126,6 +126,29 @@ class SolanaRpc:
                 continue
         return min(100.0, held / supply * 100.0)
 
+    def signatures_for_address(
+        self, address: str, limit: int = 100, before: str | None = None
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"limit": max(1, min(1000, limit)), "commitment": "confirmed"}
+        if before:
+            params["before"] = before
+        result = self._call("getSignaturesForAddress", [address, params])
+        return result if isinstance(result, list) else []
+
+    def get_transaction(self, signature: str) -> dict[str, Any] | None:
+        result = self._call(
+            "getTransaction",
+            [
+                signature,
+                {
+                    "encoding": "jsonParsed",
+                    "commitment": "confirmed",
+                    "maxSupportedTransactionVersion": 0,
+                },
+            ],
+        )
+        return result if isinstance(result, dict) else None
+
     def sol_balance(self, pubkey: str) -> float | None:
         result = self._call("getBalance", [pubkey, {"commitment": "confirmed"}])
         if not isinstance(result, dict):

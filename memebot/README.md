@@ -32,6 +32,14 @@ The honest path to using this: run `paper` for a few weeks, then read
 `data/trades.jsonl`. If it did not make money on paper, it will not make money
 live — live is strictly worse, because real fills are worse than modelled ones.
 
+**Which strategy has the better chance?** On the evidence in this repo, copy trading
+(`memebot copy`) rather than price momentum (`memebot paper`). The momentum strategy
+lost a median 4% in a market constructed to have no edge at all, and price-derived
+signals are the most crowded input in this space. Following wallets with a
+luck-filtered record is a different class of bet, and it held up under every
+simulated test — see [Copy trading](#copy-trading-following-wallets-that-make-solid-trades).
+Neither is a guarantee.
+
 ---
 
 ## Install
@@ -55,6 +63,8 @@ python -m memebot scan                    # screen live candidates, place no ord
 python -m memebot paper                   # simulated fills, real costs  (start here)
 python -m memebot backtest                # replay what `scan`/`paper` recorded
 python -m memebot simulate                # drive the engine against synthetic markets
+python -m memebot wallets <address>...    # does this wallet survive the luck filters?
+python -m memebot copy --wallet <addr>    # trade on tracked-wallet consensus (paper)
 python -m memebot live                    # real money (heavily gated)
 ```
 
@@ -211,6 +221,154 @@ while the **worst case improved by 4 percentage points**. That is what insurance
 looks like — it does not raise your average, it truncates your left tail. Do not
 expect it to make a losing strategy profitable.
 
+---
+
+## Copy trading: following wallets that make solid trades
+
+A different bet from momentum, and on the evidence here a better one. It does not try
+to predict price from price — the most crowded, most-arbitraged input there is. The
+signal is that several people with a **luck-filtered** record just bought the same
+thing, recently, at a price you can still get.
+
+```bash
+python -m memebot wallets <address>          # audit a wallet before following it
+python -m memebot copy --wallet <address>    # paper-trade their consensus
+python -m memebot simulate --selection       # do the luck filters actually work?
+python -m memebot simulate --copy            # what is each defence worth?
+```
+
+### The problem with "follow profitable wallets"
+
+Sort wallets by PnL and follow the top ones, and you have built a survivorship-bias
+machine. In any large population of gamblers, some have spectacular records by
+chance — and a leaderboard surfaces exactly those. So qualification is a set of
+**hard gates**, deliberately not a weighted score that one huge number could carry:
+
+| Gate | Default | What it rejects |
+|---|---|---|
+| `min_closed_trades` | 20 round trips | A handful of wins is a coin that came up heads. |
+| `min_distinct_tokens` | 10 | One token traded twenty times is one opinion. |
+| `max_single_token_profit_share` | 50% | **One 100x is luck, not a process.** |
+| `min_active_days` | 5 | A record built in one session is one session's luck. |
+| `min_win_rate` | 45% | |
+| `min_realized_pnl_sol` | 5 SOL | PnL measured in SOL, so no price oracle can skew it. |
+| `min_median_hold_minutes` | 10 min | **Snipers.** Their edge is being 400ms faster than you. You cannot copy latency. |
+| `max_median_hold_minutes` | 48 h | Signal too slow to act on. |
+
+Round trips are counted as *episodes* — position goes from zero, up, and back to zero
+— so a wallet that averaged into one winner does not register as twenty separate
+wins. Sells of tokens never seen bought are ignored, or airdrops would read as free
+profit.
+
+### Do the filters work? Measured, not asserted
+
+`simulate --selection` builds 150 wallets each of four known types and reports what
+qualification does with them:
+
+| Archetype | Accepted | Rejected | Verdict |
+|---|---|---|---|
+| **skilled** (real edge) | 145 | 5 | 96.7% recall — we keep the ones we want |
+| **lucky** (no edge, one moonshot) | 0 | 150 | **0% false accepts** |
+| **sniper** (edge is latency) | 0 | 150 | **0% false accepts** |
+| **farmer** (dumps on followers) | 147 | 3 | **98% pass — by design** |
+
+The concentration gate is load-bearing: relax `max_single_token_profit_share` to 1.0
+and lucky wallets start getting through (there is a test asserting exactly that).
+
+**Farmers passing is not a bug.** Nothing in a trade history reveals that a wallet
+intends to use your buys as its exit liquidity — it looks like a good trader, because
+it is one, right up until you are the counterparty. About half of everything that
+qualifies is a farmer. That is what the runtime defences are for.
+
+### The three runtime defences
+
+1. **Freshness** (`max_signal_age_seconds`, 180s) — you are *always* later than the
+   wallet you copy. Past this the move you would be copying has already happened.
+2. **Drift gate** (`max_price_drift_pct`, 12%) — refuses to buy once price has run
+   past their entry. This is the gate that stops you buying someone's top.
+3. **Attribution and demotion** — every trade is credited to the wallets that
+   triggered it, and a wallet whose copied trades lose money gets dropped. Farming is
+   invisible in the signal but obvious in the results. Demotions persist across
+   restarts, or the defence would reset every time the process bounced.
+
+Plus the strongest exit available in this design: **the wallets we followed are
+selling.** They have our information plus whatever qualified them.
+
+### What each defence is worth
+
+`simulate --copy`, 10 runs × 3 simulated days, market containing skilled wallets,
+lucky wallets and farmers:
+
+| Configuration | Median | Mean | Worst | Profitable | Farmer-attributed PnL |
+|---|---|---|---|---|---|
+| **All defences on** | +3.49% | +3.93% | +0.90% | **10/10** | **+$23** |
+| Drift gate off | +4.96% | +6.48% | +3.16% | 10/10 | +$31 |
+| Demotion off | +3.42% | +3.91% | +0.90% | 10/10 | +$20 |
+| **Wallet-exit signal off** | −0.97% | −0.24% | −5.89% | 4/10 | **−$259** |
+| All defences off | −2.44% | −1.60% | −7.65% | 2/10 | **−$375** |
+
+Reading this honestly:
+
+- **The wallet-exit signal is the one that matters.** Turn it off and farmer PnL goes
+  from +$23 to −$259, and the whole strategy flips negative. A farmer's dump is a
+  price collapse *with the pool intact*, so the liquidity-drain exit cannot see it —
+  only noticing that they sold can.
+- **Demotion is a backstop, not a primary.** With the exit signal working it changes
+  almost nothing, because there is nothing left to catch. It earns its keep when the
+  exit signal misses (note the 4 farmer wallets demoted in the row where it is the
+  only defence left).
+- **The drift gate did not pay for itself in this simulation, and I am keeping it
+  anyway.** The harness advances in 5-minute cycles, so it cannot represent the real
+  failure it exists to prevent — being two seconds behind a sniper-style entry, which
+  is documented as the dominant way copy traders get hurt. Here it just filters out
+  profitable trades (18 vs 26). Treat the +5% row as a simulation artifact rather than
+  a recommendation, and if you disagree, `max_price_drift_pct` is one line of config.
+- Skilled wallets contributed the most attributed profit (+$182) in every
+  configuration, which is the whole thesis: the money comes from following genuine
+  skill.
+
+One caveat on the lucky wallets showing positive PnL: in this harness they buy from
+the same clustered focus list as skilled wallets, so they sometimes ride a skilled
+wallet's move. That is a simulation artifact, not evidence that copying random
+wallets works.
+
+### Trade frequency is the real cost of safety
+
+Median 18 trades per 3 days. With `min_wallets_consensus: 2`, two tracked wallets
+buying the same token within 15 minutes is genuinely uncommon — the first version of
+this experiment produced **2 trades per run** until the harness modelled wallets
+clustering on the same tokens. Dropping to 1-wallet consensus will fire far more
+often and be far noisier. That trade-off is yours to make, and it is the main dial.
+
+### Getting the data
+
+Default feed is plain Solana JSON-RPC — no API key, and every number verifiable
+against the chain. It costs one `getTransaction` per signature, so **use a paid RPC
+endpoint** or it will be painfully slow. Set `smart_money.feed: birdeye` with
+`BIRDEYE_API_KEY` for a faster path.
+
+Ambiguity is dropped rather than guessed: a transaction moving more than one non-SOL
+mint is skipped, because multi-hop routes cannot be split into per-token trades
+without assuming things, and a wallet analyser that invents trades produces confident
+nonsense.
+
+This polls, which means tens of seconds of latency on a public RPC. The upgrade path
+is a websocket subscription (Helius, or Birdeye's `SUBSCRIBE_WALLET_TXS`) feeding
+`tracker.observe_trade` directly. The gates do not change; they just reject less
+often.
+
+### What copy trading still cannot fix
+
+- **You are always behind.** Every copied entry is worse than theirs. The gates limit
+  how much worse; they cannot make you first.
+- **Past performance decays.** Wallets are re-analysed every `refresh_minutes` and
+  unfollowed when they stop qualifying, but that is reactive by definition.
+- **A wallet can be skilled at something you cannot replicate** — private deal flow,
+  insider information, or size that moves the market it is trading.
+- **Selection still happens on data you chose.** If you feed it a watchlist scraped
+  from Telegram callers, the filters will reject most of them, but a watchlist is
+  still an input you picked.
+
 ### A bug this study found
 
 The first run of the study halted **every single simulation** permanently. The
@@ -273,11 +431,18 @@ memebot/
     rugcheck.py        third-party risk score, LP lock, holder concentration
     solana_rpc.py      mint/freeze authority read straight from chain
     jupiter.py         quotes, sell-route probe, swap transaction build
+    wallet_feed.py     reconstruct wallet swaps (RPC, or Birdeye)
   screening/
     safety.py          gathers the facts (failure-tolerant)
     filters.py         interprets them (hard fails vs soft flags)
+  smartmoney/
+    analysis.py        reconstruct round trips; separate skill from luck
+    tracker.py         consensus, freshness/drift gates, attribution, demotion
+    watcher.py         polls followed wallets for new trades
+    simulate.py        selection confusion matrix + defence A/B
   strategy/
     momentum.py        entries, and the exit ladder that does the real work
+    copytrade.py       entries from wallet consensus; exit when they sell
   risk.py              sizing, caps, daily halt, circuit breaker
   execution/
     base.py            the shared cost model — both brokers use the same math
@@ -293,7 +458,7 @@ memebot/
 ## Tests
 
 ```bash
-python -m pytest -q      # 156 tests
+python -m pytest -q      # 235 tests
 ```
 
 The screening and cost-model tests are the important ones: each screening test
