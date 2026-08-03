@@ -1,0 +1,11 @@
+# Secrets — never commit
+.env
+
+# Runtime output: trade logs, snapshots, engine log
+data/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/

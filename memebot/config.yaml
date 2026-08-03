@@ -1,0 +1,185 @@
+# memebot configuration
+#
+# These defaults are deliberately conservative. Loosening them increases how many
+# tokens the bot will trade, not how often it is right.
+#
+# Every value can be checked with:  python -m memebot costs
+
+screening:
+  # --- size and liquidity floors -------------------------------------------
+  # Below ~$25k of liquidity you cannot exit a $100 position without paying for it.
+  min_liquidity_usd: 25000
+  max_liquidity_usd: 5000000
+  min_volume_h24_usd: 50000
+  min_fdv_usd: 100000
+  max_fdv_usd: 50000000
+
+  # --- age band -------------------------------------------------------------
+  # The first half hour belongs to snipers, bundlers and the deployer. You are
+  # reading a public REST API; you are not faster than them. Do not pretend to be.
+  min_pair_age_minutes: 30
+  max_pair_age_minutes: 4320   # 3 days
+
+  # --- turnover sanity ------------------------------------------------------
+  # 40x hourly turnover on a small pool is not organic demand, it is wash trading.
+  max_vol_liq_ratio_h1: 40
+  min_vol_liq_ratio_h1: 0.15
+
+  # --- hard on-chain vetoes -------------------------------------------------
+  require_mint_authority_revoked: true    # else the dev can print unlimited supply
+  require_freeze_authority_revoked: true  # else the dev can freeze your account
+  min_lp_locked_pct: 90                   # else the dev can pull the liquidity
+  max_top10_holder_pct: 35                # else one wallet's exit is the whole pool
+  max_rugcheck_score: 40
+
+  # Keep this true. An unfinished check is not a passed check.
+  unknown_is_failure: true
+
+  # --- honeypot detection ---------------------------------------------------
+  # Quote a sell back to SOL before buying. No route out = do not go in.
+  require_sell_route: true
+  max_sell_price_impact_bps: 400
+  sell_probe_usd: 25
+
+  max_buy_price_impact_bps: 300
+
+  blocked_mints: []
+  blocked_symbol_substrings: ["test", "scam"]
+
+strategy:
+  min_price_change_m5: 1.0
+  max_price_change_m5: 40.0
+  min_price_change_h1: 3.0
+  max_price_change_h1: 300.0    # do not buy something already up 3x this hour
+  min_buy_pressure_m5: 0.55
+  min_trades_m5: 15
+  min_liquidity_trend_pct: -5.0
+  min_score: 0.60
+
+  stop_loss_pct: 0.18
+  trailing_stop_pct: 0.22
+  take_profit_pct: 0.45
+  partial_take_profit_fraction: 0.5
+  max_hold_minutes: 240
+  liquidity_drain_exit_pct: 0.30   # emergency exit: the pool is leaving
+
+risk:
+  starting_equity_usd: 1000
+  risk_fraction_per_trade: 0.02   # 2% of equity at risk per trade
+  max_position_usd: 100
+  min_position_usd: 10
+  max_concurrent_positions: 3
+  max_total_exposure_fraction: 0.35
+  max_daily_loss_fraction: 0.08   # halt for the rest of the UTC day at -8%
+  max_consecutive_losses: 5
+  # Pause entries for 6h after a losing streak. A permanent halt sounds safer but
+  # isn't: at any realistic win rate a streak is inevitable on day one, so a
+  # manual-only breaker stops the bot immediately and gets switched off. Set to 0
+  # if you genuinely want to require a manual resume.
+  consecutive_loss_pause_minutes: 360
+  cooldown_minutes_per_mint: 180
+  min_seconds_between_entries: 60
+
+costs:
+  # Understating these is the single most common way a paper-profitable bot loses
+  # real money. If anything, these are optimistic.
+  dex_fee_bps: 25
+  jupiter_platform_fee_bps: 0
+  extra_slippage_bps: 100        # on top of quoted price impact
+  priority_fee_lamports: 200000
+  base_tx_fee_lamports: 5000
+  sol_price_usd: 150             # fallback only; live mode uses the real price
+  failed_tx_probability: 0.05
+
+execution:
+  mode: paper                    # paper | live
+  jupiter_base_url: https://lite-api.jup.ag
+  solana_rpc_url: https://api.mainnet-beta.solana.com
+  slippage_bps: 300
+  live_max_trade_usd: 50         # absolute clamp, independent of risk sizing
+  confirm_timeout_seconds: 60
+
+# --------------------------------------------------------------------------
+# Copy trading: follow wallets with a demonstrated record.
+#
+# This is a different bet from the momentum strategy above. It does not try to
+# predict price from price; it follows people who have already shown skill.
+#
+# The thresholds exist to separate SKILL from LUCK. In any large population of
+# gamblers, some will have spectacular records by chance, and a PnL leaderboard
+# surfaces exactly those. Loosening these does not find more good wallets — it
+# finds more lucky ones. Measured effect of relaxing the concentration gate:
+# lucky-wallet false accepts go from 0% to well above it.
+# --------------------------------------------------------------------------
+smart_money:
+  enabled: false                 # `memebot copy` turns this on
+  feed: rpc                      # rpc (no key needed) | birdeye (BIRDEYE_API_KEY)
+  max_wallets_tracked: 25
+  refresh_minutes: 360           # re-check followed wallets; records decay
+
+  # Judging six-month consistency needs six months of trades. On the RPC feed this
+  # costs one getTransaction per signature — 600 calls per wallet. Use a paid RPC
+  # endpoint or the birdeye feed; the public RPC will rate-limit you.
+  analysis_transactions: 600
+  max_analysis_pages: 12
+  lookback_days: 210             # wider than the 6-month claim, so edges are visible
+
+  # --- qualification: every one of these is a HARD gate ---------------------
+  min_closed_trades: 20          # a handful of wins is a coin that came up heads
+  min_distinct_tokens: 10
+  min_realized_pnl_sol: 5.0
+  min_win_rate: 0.45
+  min_active_days: 5             # a record built in one session is one session's luck
+  max_single_token_profit_share: 0.50   # one 100x is luck, not a process
+  min_median_hold_minutes: 10    # below this it's a sniper: its edge is latency, not insight
+  max_median_hold_minutes: 2880  # above this the signal is too slow to copy
+
+  # --- temporal stability: "worked CONSISTENTLY", not "big all-time total" --
+  # A wallet that made everything in month one and bled since has the same total
+  # PnL as one that earned steadily. Only the second is worth copying, and nothing
+  # in the gates above can tell them apart.
+  # Measured cost: skilled-wallet recall drops from ~97% to ~83% once these are on.
+  # That is the price of demanding sustained success, and it is worth paying.
+  min_history_days: 150          # cannot claim a 6-month record from 3 weeks
+  min_months_covered: 5
+  min_profitable_month_fraction: 0.60   # e.g. profitable in 4+ of 6 months
+  max_losing_month_streak: 2
+  max_wallet_drawdown_pct: 60    # drawdown of THEIR equity curve; copying it is your ride
+  max_days_since_last_trade: 14  # a dormant wallet's record is history, not a signal
+  reject_decaying_wallets: true  # recent half must not be far worse than the earlier half
+  min_recent_pnl_sol: 0.0        # and it must not be a loss
+
+  # --- signal gates --------------------------------------------------------
+  min_wallets_consensus: 2       # one wallet is an opinion; several is a signal
+  consensus_window_seconds: 900
+  max_signal_age_seconds: 180    # you are ALWAYS later than them; past this it's over
+  max_price_drift_pct: 12        # refuse once price ran this far past their entry —
+                                 # this is the gate that stops you being exit liquidity
+  max_adverse_drift_pct: 15      # also refuse if they're already well underwater
+
+  # --- exits ---------------------------------------------------------------
+  # Measured as the single most valuable defence: without it, farmer-attributed
+  # PnL went from +$39 to -$290 across 10 simulated runs.
+  exit_on_wallet_exit: true
+  min_wallets_selling: 1
+  exit_window_seconds: 900
+
+  # --- attribution and demotion -------------------------------------------
+  # You cannot detect a follower-farmer from its history — ~97% of them pass the
+  # gates above, by construction. You can only measure the outcome and stop.
+  min_attributed_trades: 5
+  demote_below_pnl_usd: 0.0
+  demote_below_win_rate: 0.30
+  state_file: smart_money.json
+
+  watchlist: []                  # addresses to analyse on startup
+
+engine:
+  poll_seconds: 30
+  max_candidates_per_cycle: 25
+  snapshot_history: 20
+  data_dir: data
+  log_level: INFO
+  record_snapshots: true         # feeds `memebot backtest`
+  http_timeout_seconds: 15
+  chain: solana
