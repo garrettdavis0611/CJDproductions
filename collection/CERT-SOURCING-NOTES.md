@@ -93,6 +93,29 @@ Closest near-miss: pokemonsteve.com has Espeon ex 211/187 at **CGC 10 Pristine**
 Beckett is structurally harder: no retailer publishes BGS certs in URLs, and Beckett's
 own lookup is cert-in/details-out like the others.
 
+## Targeted attempt: first 5 CGC cards (all failed)
+
+| # | Card | Grade | Result |
+|---|---|---|---|
+| 1 | Pikachu V (Full Art) 157/172, Brilliant Stars | CGC 8.5 | no slug source |
+| 2 | Eevee TG11/TG30, Brilliant Stars TG | CGC 10 Gem Mint | no slug source |
+| 3 | Blastoise 2/102, Celebrations Classic | CGC 9.0 | AA Mint has this card in PSA 9/10 only |
+| 4 | Dark Gyarados 8/82, Celebrations Classic | CGC 9.0 | no slug source |
+| 5 | Tyranitar (JP) 079/071, Clay Burst | CGC 10 Gem Mint | listings exist, none expose cert |
+
+Every one of these has CGC copies for sale at the right grade — on eBay, PKMhobby,
+Monmouth Sports Cards, Graded Power, Fanatics Collect. None of those sites put the
+cert in the URL, so the number is unreachable without opening the page or reading the
+slab photo, and both are blocked here.
+
+Additional retailers checked, none cert-in-slug: `pkmhobby.com`, `monmouthcards.com`,
+`gradedpower.com` (its URL digits are internal catalog IDs, not certs),
+`fanaticscollect.com` (UUIDs), `collectibles.com`, `sweetsandgeeks.com`.
+
+CGC's own site is also a dead end: `certlookup` pages are indexed only as the generic
+landing page, never associated with card names, and population-report pages give
+counts per grade rather than cert numbers.
+
 ## To finish the remaining 45
 
 Either run the same searches from a network that can reach the blocked hosts, or search
