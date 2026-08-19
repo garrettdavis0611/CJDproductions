@@ -45,9 +45,11 @@ function syncRow(vals) {
       if (normDate(data[r][info.dateCol]) !== nuDate) continue;
       if (info.teamCol >= 0 && !teamMatches(team, String(data[r][info.teamCol]))) continue;
       tabs[i].getRange(r + 1, info.prodCol + 1).setValue(crew);
+      console.log("WROTE '" + crew + "' -> " + tabs[i].getName() + " row " + (r + 1) + " (" + nuDate + " " + team + ")");
       return;
     }
   }
+  console.log("NO MATCH: " + team + " " + nuDate);
 }
 
 // Identify each NU tab by its headers (no reliance on tab names):
@@ -68,11 +70,15 @@ function tabInfo(tab, team) {
     if (prodCol === -1 || dateCol === -1) continue;
     const teamCol = hdr.findIndex(function (h) { return /^team$/i.test(h.trim()); });
     const joined = hdr.join(" | ");
+    const nm = tab.getName();
+    const isHockey = teamCol >= 0;
+    const isMBB = /1st half/i.test(joined);
+    const isWBB = /1st quarter/i.test(joined);
     const ok =
-      (/Hockey/.test(team) && teamCol >= 0) ||
-      (/Men's Basketball/.test(team) && /1st half/i.test(joined)) ||
-      (/Women's Basketball/.test(team) && /1st quarter/i.test(joined)) ||
-      (/Volleyball/.test(team) && /post set/i.test(joined));
+      (/Hockey/.test(team) && (isHockey || /hockey/i.test(nm))) ||
+      (/Men's Basketball/.test(team) && (isMBB || (/men'?s basketball/i.test(nm) && !/women/i.test(nm)))) ||
+      (/Women's Basketball/.test(team) && (isWBB || /women'?s basketball/i.test(nm))) ||
+      (/Volleyball/.test(team) && (/volleyball/i.test(nm) || (!isHockey && !isMBB && !isWBB)));
     return ok ? { headerRow: i + 1, prodCol: prodCol, dateCol: dateCol, teamCol: teamCol } : null;
   }
   return null;
