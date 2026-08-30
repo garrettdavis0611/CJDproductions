@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# Only needed to sign and submit real Solana transactions.
+solders>=0.21
+base58>=2.1

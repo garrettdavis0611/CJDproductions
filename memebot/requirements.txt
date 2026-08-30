@@ -1,0 +1,7 @@
+# Core (required for scan / paper trading / backtest)
+httpx>=0.27
+PyYAML>=6.0
+rich>=13.7
+
+# Live trading only (not needed for paper mode)
+# Install with: pip install -r requirements-live.txt
