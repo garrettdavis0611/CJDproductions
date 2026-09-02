@@ -1,0 +1,932 @@
+<title>Evergreen Walk-In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<style>
+:root{
+  --paper:#EBEEE7;
+  --sheet:#F7F8F4;
+  --sheet-2:#E2E7DD;
+  --hang:#DDE6DC;
+  --ink:#16211B;
+  --ink-2:#4A5B51;
+  --ink-3:#7E8C83;
+  --green:#1E4534;
+  --green-2:#356B4F;
+  --brass:#9A7728;
+  --brass-2:#C6A458;
+  --rule:#C3CBBF;
+  --flag:#8C3A22;
+  --ok:#2F6B4A;
+  --shadow:0 1px 0 rgba(22,33,27,.06);
+  --sans:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#111713; --sheet:#19211C; --sheet-2:#212B24; --hang:#22302A;
+    --ink:#E4EADF; --ink-2:#A3B0A6; --ink-3:#6E7C72;
+    --green:#7FB396; --green-2:#5F9179;
+    --brass:#D9B76A; --brass-2:#A8873F;
+    --rule:#2E3B33; --flag:#E08A6A; --ok:#7FC49B;
+    --shadow:0 1px 0 rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111713; --sheet:#19211C; --sheet-2:#212B24; --hang:#22302A;
+  --ink:#E4EADF; --ink-2:#A3B0A6; --ink-3:#6E7C72;
+  --green:#7FB396; --green-2:#5F9179;
+  --brass:#D9B76A; --brass-2:#A8873F;
+  --rule:#2E3B33; --flag:#E08A6A; --ok:#7FC49B;
+  --shadow:0 1px 0 rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1060px;margin:0 auto;padding:28px 22px 72px}
+h1,h2,h3{margin:0;text-wrap:balance;font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--brass)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- cover title block ---------- */
+.cover{border:1px solid var(--rule);background:var(--sheet);box-shadow:var(--shadow)}
+.cover-top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px 32px;padding:22px 24px 18px}
+.cover-title h1{font-size:clamp(28px,4.4vw,44px);line-height:1.02;letter-spacing:-.025em}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin-bottom:9px}
+.cover-sub{font-family:var(--serif);font-size:17px;color:var(--ink-2);margin-top:9px;max-width:46ch}
+.cover-meta{margin-left:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);min-width:262px}
+.cover-meta div{background:var(--sheet);padding:8px 12px}
+.cover-meta dt,.k{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.cover-meta dd,.v{margin:2px 0 0;font-family:var(--mono);font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+.cover-strip{border-top:1px solid var(--rule);background:var(--sheet-2);padding:9px 24px;display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.cover-strip b{color:var(--ink);font-weight:600}
+
+/* ---------- section headers ---------- */
+.sec{margin-top:40px}
+.sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1.5px solid var(--green);padding-bottom:7px;margin-bottom:16px}
+.sec-head .no{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--brass)}
+.sec-head h2{font-size:19px}
+.sec-head .aside{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink-3);text-align:right}
+
+/* ---------- drawing sheets ---------- */
+.sheets{display:grid;gap:18px}
+.sheet{border:1px solid var(--rule);background:var(--sheet);box-shadow:var(--shadow)}
+.sheet-bar{display:flex;align-items:center;gap:11px;padding:9px 14px;border-bottom:1px solid var(--rule);background:var(--sheet-2)}
+.sheet-no{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--sheet);background:var(--green);padding:2px 7px}
+.sheet-bar h3{font-size:13.5px;letter-spacing:.005em}
+.sheet-bar .scale{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.06em}
+.sheet-body{padding:6px 8px 2px;overflow-x:auto}
+.sheet svg{display:block;width:100%;height:auto;min-width:430px}
+.sheet-notes{border-top:1px solid var(--rule);padding:10px 14px;display:flex;flex-wrap:wrap;gap:5px 26px;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.sheet-notes span b{color:var(--ink);font-weight:600}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(392px,1fr));gap:18px}
+
+/* svg type */
+.d-lbl{font-family:var(--mono);font-size:9px;fill:var(--brass);font-variant-numeric:tabular-nums}
+.b-lbl{font-family:var(--sans);font-size:10px;font-weight:600;fill:var(--green);letter-spacing:.07em}
+.s-lbl{font-family:var(--mono);font-size:8.5px;fill:var(--ink-3)}
+.c-lbl{font-family:var(--mono);font-size:9.5px;font-weight:500;fill:var(--brass)}
+
+/* ---------- option control ---------- */
+.opt{border:1px solid var(--rule);border-left:3px solid var(--brass);background:var(--sheet);padding:13px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-bottom:16px}
+.opt-txt{max-width:52ch}
+.opt-txt strong{font-size:13px}
+.opt-txt p{font-family:var(--serif);font-size:14px;color:var(--ink-2);margin-top:2px}
+.seg{margin-left:auto;display:flex;border:1px solid var(--green);background:var(--sheet)}
+.seg button{appearance:none;border:0;background:transparent;color:var(--green);font-family:var(--mono);font-size:11px;letter-spacing:.05em;padding:7px 13px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--green)}
+.seg button[aria-pressed="true"]{background:var(--green);color:var(--sheet)}
+.seg button:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;border:1px solid var(--rule);background:var(--sheet);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:560px}
+caption{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);padding:11px 14px 0}
+th,td{text-align:left;padding:8px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+thead th{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500;border-bottom:1.5px solid var(--green)}
+tbody tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.art{font-family:var(--mono);font-size:13px;letter-spacing:.02em}
+.grp td{background:var(--sheet-2);font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2);padding-top:7px;padding-bottom:7px}
+.tot td{border-top:1.5px solid var(--green);font-weight:600;background:var(--sheet-2)}
+.dim{color:var(--ink-3)}
+.chg{color:var(--brass);font-weight:600}
+
+/* ---------- checks ---------- */
+.checks{display:grid;gap:10px}
+.chk{border:1px solid var(--rule);border-left:3px solid var(--flag);background:var(--sheet);padding:12px 15px;box-shadow:var(--shadow)}
+.chk.ok{border-left-color:var(--ok)}
+.chk.note{border-left-color:var(--brass)}
+.chk-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px}
+.chk-h h3{font-size:13.5px}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:2px 6px;border:1px solid currentColor;color:var(--flag);white-space:nowrap}
+.chk.ok .tag{color:var(--ok)}
+.chk.note .tag{color:var(--brass)}
+.chk p{font-family:var(--serif);font-size:14.5px;color:var(--ink-2);margin-top:5px;max-width:74ch}
+.chk p .mono{color:var(--ink);font-size:13px}
+
+/* ---------- money ---------- */
+.money{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);box-shadow:var(--shadow)}
+.money div{background:var(--sheet);padding:13px 15px}
+.money .v{font-size:22px;font-weight:600;font-family:var(--mono);letter-spacing:-.02em;margin-top:4px}
+.money small{display:block;font-family:var(--serif);font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.35}
+.money .accent .v{color:var(--brass)}
+
+/* ---------- sequence ---------- */
+.seq{counter-reset:s;display:grid;gap:0;border:1px solid var(--rule);background:var(--sheet);box-shadow:var(--shadow)}
+.seq li{list-style:none;display:grid;grid-template-columns:46px 1fr;gap:14px;padding:11px 16px;border-bottom:1px solid var(--rule)}
+.seq li:last-child{border-bottom:0}
+.seq li::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:11px;font-weight:600;color:var(--brass);padding-top:3px}
+.seq b{font-size:14px;font-weight:600}
+.seq span{display:block;font-family:var(--serif);font-size:14px;color:var(--ink-2);margin-top:1px}
+.seq ol{margin:0;padding:0}
+
+.foot{margin-top:44px;border-top:1px solid var(--rule);padding-top:14px;font-family:var(--mono);font-size:11px;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:6px 24px}
+@media (prefers-reduced-motion:no-preference){.seg button{transition:background .12s ease,color .12s ease}}
+@media (max-width:620px){
+  .cover-meta{margin-left:0;width:100%}
+  .seg{margin-left:0}
+}
+</style>
+
+<div class="wrap">
+
+<!-- ============ COVER TITLE BLOCK ============ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="cover-title">
+      <div class="eyebrow">Build set &middot; Shared walk-in &middot; PAX + KOMPLEMENT</div>
+      <h1>Evergreen&nbsp;&amp;&nbsp;Brass<br>Walk-In</h1>
+      <p class="cover-sub">Four drawings, one takeoff, and the eleven things to verify with a tape before the order goes in.</p>
+    </div>
+    <dl class="cover-meta">
+      <div><dt>Room</dt><dd>78&Prime; &times; 93&Prime;</dd></div>
+      <div><dt>Ceiling</dt><dd>96&Prime; <span class="dim">t.b.c.</span></dd></div>
+      <div><dt>Budget</dt><dd>$5,570</dd></div>
+      <div><dt>Hanging</dt><dd data-a="19&prime;&nbsp;8&frac14;&Prime;" data-b="22&prime;&nbsp;11&frac58;&Prime;" id="m-hang">19&prime;&nbsp;8&frac14;&Prime;</dd></div>
+      <div><dt>Drawers</dt><dd><span data-a="11" data-b="7" class="swap">11</span></dd></div>
+      <div><dt>Frames</dt><dd>5</dd></div>
+    </dl>
+  </div>
+  <div class="cover-strip">
+    <span><b>All dimensions AFF</b> (above finished floor)</span>
+    <span>Drawings to scale &mdash; verify on site</span>
+    <span><b>IKEA Family 10% off PAX $500+ ends Sep 7</b></span>
+  </div>
+</div>
+
+<!-- ============ A-1 PLAN ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">01</span>
+    <h2>The room in plan</h2>
+    <span class="aside">78&Prime; &times; 93&Prime; &middot; 50.4 sq&nbsp;ft</span>
+  </div>
+
+  <div class="sheet">
+    <div class="sheet-bar">
+      <span class="sheet-no">A-1</span>
+      <h3>Floor plan &mdash; runs, tower, door swing</h3>
+      <span class="scale">1&Prime; = 4.2&nbsp;px &middot; drawn to scale</span>
+    </div>
+    <div class="sheet-body">
+      <svg viewBox="0 0 500 600" role="img" aria-label="Floor plan: a 78 by 93 inch room with two 22 7/8 inch deep PAX runs down the long walls, a 29 1/2 inch tower centred on the back wall, and a 32 1/4 inch aisle between them.">
+        <defs>
+          <pattern id="hx" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--ink-3)" stroke-width="1" opacity=".45"/>
+          </pattern>
+          <marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 1 L7 4 L0 7 Z" fill="var(--brass)"/>
+          </marker>
+          <marker id="ag" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 1 L7 4 L0 7 Z" fill="var(--green-2)"/>
+          </marker>
+        </defs>
+
+        <!-- overall width dimension -->
+        <g stroke="var(--brass)" stroke-width="1">
+          <line x1="78" y1="22" x2="405.6" y2="22"/>
+          <line x1="78" y1="16" x2="78" y2="28"/><line x1="405.6" y1="16" x2="405.6" y2="28"/>
+        </g>
+        <rect x="222" y="13" width="40" height="17" fill="var(--sheet)"/>
+        <text class="d-lbl" x="241.8" y="25" text-anchor="middle">78&Prime;</text>
+
+        <!-- overall depth dimension -->
+        <g stroke="var(--brass)" stroke-width="1">
+          <line x1="452" y1="44" x2="452" y2="434.6"/>
+          <line x1="446" y1="44" x2="458" y2="44"/><line x1="446" y1="434.6" x2="458" y2="434.6"/>
+        </g>
+        <rect x="443" y="228" width="18" height="24" fill="var(--sheet)"/>
+        <text class="d-lbl" x="452" y="243" text-anchor="middle" transform="rotate(-90 452 240)">93&Prime;</text>
+
+        <!-- room shell -->
+        <rect x="78" y="44" width="327.6" height="390.6" fill="var(--sheet-2)" stroke="var(--green)" stroke-width="2.5"/>
+
+        <!-- open corner pockets -->
+        <rect x="78" y="44" width="96.075" height="59.85" fill="url(#hx)" stroke="var(--ink-3)" stroke-width=".75" stroke-dasharray="3 2"/>
+        <rect x="309.525" y="44" width="96.075" height="59.85" fill="url(#hx)" stroke="var(--ink-3)" stroke-width=".75" stroke-dasharray="3 2"/>
+        <text class="s-lbl" x="126" y="68" text-anchor="middle">OPEN CORNER</text>
+        <text class="s-lbl" x="126" y="80" text-anchor="middle">22&frac78; &times; 14&frac14;</text>
+        <text class="s-lbl" x="357.5" y="68" text-anchor="middle">OPEN CORNER</text>
+        <text class="s-lbl" x="357.5" y="80" text-anchor="middle">22&frac78; &times; 14&frac14;</text>
+
+        <!-- left run: L2 (back) + L1 (door) -->
+        <rect x="78" y="103.85" width="96.075" height="165.4" fill="var(--sheet)" stroke="var(--green)" stroke-width="1.75"/>
+        <rect x="78" y="269.25" width="96.075" height="165.35" fill="var(--sheet)" stroke="var(--green)" stroke-width="1.75"/>
+        <text class="b-lbl" x="126" y="182">L2</text>
+        <text class="s-lbl" x="126" y="196" text-anchor="middle">long hang</text>
+        <text class="s-lbl" x="126" y="207" text-anchor="middle">+ 2 drawers</text>
+        <text class="b-lbl" x="126" y="347">L1</text>
+        <text class="s-lbl" x="126" y="361" text-anchor="middle">double hang</text>
+
+        <!-- right run: R2 (back) + R1 (door) -->
+        <rect x="309.525" y="103.85" width="96.075" height="165.4" fill="var(--sheet)" stroke="var(--green)" stroke-width="1.75"/>
+        <rect x="309.525" y="269.25" width="96.075" height="165.35" fill="var(--sheet)" stroke="var(--green)" stroke-width="1.75"/>
+        <text class="b-lbl" x="357.5" y="182">R2</text>
+        <text class="s-lbl" x="357.5" y="196" text-anchor="middle"><tspan class="r2-mode">single hang</tspan></text>
+        <text class="s-lbl" x="357.5" y="207" text-anchor="middle"><tspan class="r2-mode2">+ 4 drawers</tspan></text>
+        <text class="b-lbl" x="357.5" y="347">R1</text>
+        <text class="s-lbl" x="357.5" y="361" text-anchor="middle">double hang</text>
+
+        <!-- back tower -->
+        <rect x="179.85" y="44" width="123.9" height="57.75" fill="var(--sheet)" stroke="var(--green)" stroke-width="1.75"/>
+        <text class="b-lbl" x="241.8" y="68" text-anchor="middle">TOWER</text>
+        <text class="s-lbl" x="241.8" y="82" text-anchor="middle">29&frac12; &times; 13&frac34; deep</text>
+
+        <!-- filler gaps -->
+        <rect x="174.075" y="44" width="5.775" height="57.75" fill="var(--brass)" opacity=".3"/>
+        <rect x="303.75" y="44" width="5.775" height="57.75" fill="var(--brass)" opacity=".3"/>
+
+        <!-- aisle dimension -->
+        <g stroke="var(--brass)" stroke-width="1">
+          <line x1="174.075" y1="232" x2="309.525" y2="232" marker-end="url(#ar)"/>
+          <line x1="174.075" y1="226" x2="174.075" y2="238"/><line x1="309.525" y1="226" x2="309.525" y2="238"/>
+        </g>
+        <rect x="212" y="223" width="60" height="17" fill="var(--sheet)"/>
+        <text class="c-lbl" x="241.8" y="235" text-anchor="middle">32&frac14;&Prime; aisle</text>
+
+        <!-- elevation view markers -->
+        <circle cx="52" cy="300" r="12" fill="var(--sheet)" stroke="var(--green-2)" stroke-width="1.25"/>
+        <text class="s-lbl" x="52" y="303.5" text-anchor="middle" fill="var(--green-2)">A-2</text>
+        <line x1="64" y1="300" x2="76" y2="300" stroke="var(--green-2)" stroke-width="1.25" marker-end="url(#ag)"/>
+        <circle cx="431" cy="300" r="12" fill="var(--sheet)" stroke="var(--green-2)" stroke-width="1.25"/>
+        <text class="s-lbl" x="431" y="303.5" text-anchor="middle" fill="var(--green-2)">A-3</text>
+        <line x1="419" y1="300" x2="407" y2="300" stroke="var(--green-2)" stroke-width="1.25" marker-end="url(#ag)"/>
+        <circle cx="241.8" cy="140" r="12" fill="var(--sheet)" stroke="var(--green-2)" stroke-width="1.25"/>
+        <text class="s-lbl" x="241.8" y="143.5" text-anchor="middle" fill="var(--green-2)">A-4</text>
+        <line x1="241.8" y1="128" x2="241.8" y2="112" stroke="var(--green-2)" stroke-width="1.25" marker-end="url(#ag)"/>
+
+        <!-- door opening + swing (reversed, opens out) -->
+        <line x1="179.85" y1="434.6" x2="303.75" y2="434.6" stroke="var(--sheet-2)" stroke-width="4"/>
+        <path d="M179.85 558.5 A123.9 123.9 0 0 0 303.75 434.6" fill="none" stroke="var(--brass)" stroke-width="1" stroke-dasharray="4 3" opacity=".8"/>
+        <rect x="176" y="434.6" width="7" height="123.9" fill="var(--brass)" opacity=".55"/>
+        <circle cx="179.85" cy="434.6" r="3.5" fill="var(--brass)"/>
+        <g stroke="var(--brass)" stroke-width="1">
+          <line x1="179.85" y1="452" x2="303.75" y2="452"/>
+          <line x1="179.85" y1="446" x2="179.85" y2="458"/><line x1="303.75" y1="446" x2="303.75" y2="458"/>
+        </g>
+        <rect x="215" y="443" width="54" height="17" fill="var(--sheet)"/>
+        <text class="d-lbl" x="241.8" y="455" text-anchor="middle">29&frac12;&Prime; door</text>
+        <text class="s-lbl" x="150" y="500" text-anchor="middle">HINGE LEFT</text>
+        <text class="s-lbl" x="150" y="512" text-anchor="middle">SWING REVERSED &mdash; OPENS OUT</text>
+        <text class="s-lbl" x="330" y="500">DOOR WALL &mdash; 78&Prime;</text>
+
+        <!-- casing clash callout -->
+        <line x1="176" y1="428" x2="222" y2="404" stroke="var(--flag)" stroke-width="1"/>
+        <circle cx="176" cy="428" r="2.5" fill="var(--flag)"/>
+        <text class="s-lbl" x="241.8" y="398" text-anchor="middle" fill="var(--flag)">1&frac38;&Prime; frame to opening</text>
+        <text class="s-lbl" x="241.8" y="409" text-anchor="middle" fill="var(--flag)">casing will clash</text>
+      </svg>
+    </div>
+    <div class="sheet-notes">
+      <span>Runs <b>78&frac34;&Prime;</b> of the 93&Prime; wall &mdash; <b>14&frac14;&Prime;</b> left open at the back</span>
+      <span>Tower gap <b>32&frac14;&Prime;</b> &rarr; filler <b>1&frac38;&Prime;</b> each side</span>
+      <span>Aisle <b>32&frac14;&Prime;</b> &mdash; below the 36&Prime; comfort standard</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A-2 / A-3 SIDE WALLS ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">02</span>
+    <h2>The two long walls</h2>
+    <span class="aside">2 frames each &middot; 39&frac38; &times; 22&frac78; &times; 92&frac78;</span>
+  </div>
+
+  <div class="opt">
+    <div class="opt-txt">
+      <strong>Bay R2 is the one flexible piece in the plan.</strong>
+      <p>Four drawers under a single hang, or a second double hang matching R1. Switching changes the elevation, the takeoff, and the pull count below.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Bay R2 configuration">
+      <button type="button" id="btn-a" aria-pressed="true">4 drawers</button>
+      <button type="button" id="btn-b" aria-pressed="false">double hang</button>
+    </div>
+  </div>
+
+  <div class="two">
+
+  <!-- ---------- A-2 LEFT WALL ---------- -->
+  <div class="sheet">
+    <div class="sheet-bar">
+      <span class="sheet-no">A-2</span>
+      <h3>Left wall elevation &mdash; 93&Prime;</h3>
+      <span class="scale">1&Prime; = 4.6&nbsp;px</span>
+    </div>
+    <div class="sheet-body">
+      <svg viewBox="0 0 520 520" role="img" aria-label="Left wall elevation: bay L1 double hang with shelves at 88 and 45 inches and rails at 83 and 42; bay L2 long hang with a shelf at 88, a rail at 83, and two drawers in the bottom 19 inches.">
+        <defs>
+          <pattern id="hx2" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--ink-3)" stroke-width="1" opacity=".4"/>
+          </pattern>
+        </defs>
+
+        <!-- ceiling + floor -->
+        <line x1="48" y1="30" x2="500" y2="30" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="6 4"/>
+        <line x1="48" y1="471.6" x2="500" y2="471.6" stroke="var(--green)" stroke-width="2.5"/>
+
+        <!-- height rule -->
+        <line x1="60" y1="30" x2="60" y2="471.6" stroke="var(--brass)" stroke-width=".9"/>
+        <g stroke="var(--brass)" stroke-width=".9">
+          <line x1="56" y1="30" x2="64" y2="30"/><line x1="56" y1="44.375" x2="64" y2="44.375"/>
+          <line x1="56" y1="66.8" x2="64" y2="66.8"/><line x1="56" y1="89.8" x2="64" y2="89.8"/>
+          <line x1="56" y1="264.6" x2="64" y2="264.6"/><line x1="56" y1="278.4" x2="64" y2="278.4"/>
+          <line x1="56" y1="384.2" x2="64" y2="384.2"/><line x1="56" y1="471.6" x2="64" y2="471.6"/>
+        </g>
+        <g class="d-lbl" text-anchor="end">
+          <text x="52" y="33">96&Prime;</text>
+          <text x="52" y="47.4">92&frac78;&Prime;</text>
+          <text x="52" y="69.8">88&Prime;</text>
+          <text x="52" y="92.8">83&Prime;</text>
+          <text x="52" y="262">45&Prime;</text>
+          <text x="52" y="285">42&Prime;</text>
+          <text x="52" y="387.2">19&Prime;</text>
+          <text x="52" y="474.6">0&Prime;</text>
+        </g>
+
+        <!-- hang zones -->
+        <rect x="64" y="89.8" width="181.125" height="174.8" fill="var(--hang)"/>
+        <rect x="64" y="278.4" width="181.125" height="193.2" fill="var(--hang)"/>
+        <rect x="245.125" y="89.8" width="181.125" height="294.4" fill="var(--hang)"/>
+
+        <!-- frames -->
+        <rect x="64" y="44.375" width="181.125" height="427.225" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <rect x="245.125" y="44.375" width="181.125" height="427.225" fill="none" stroke="var(--green)" stroke-width="2"/>
+
+        <!-- open return -->
+        <rect x="426.25" y="44.375" width="65.55" height="427.225" fill="url(#hx2)" stroke="var(--ink-3)" stroke-width=".75" stroke-dasharray="3 2"/>
+        <text class="s-lbl" x="459" y="250" text-anchor="middle" transform="rotate(-90 459 250)">OPEN 14&frac14;&Prime; &mdash; TOWER RETURNS</text>
+
+        <!-- L1 fittings -->
+        <rect x="64" y="64.3" width="181.125" height="5" fill="var(--green)"/>
+        <rect x="64" y="262.1" width="181.125" height="5" fill="var(--green)"/>
+        <g stroke="var(--green-2)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="74" y1="89.8" x2="235" y2="89.8"/><circle cx="74" cy="89.8" r="3.4" fill="var(--green-2)"/><circle cx="235" cy="89.8" r="3.4" fill="var(--green-2)"/>
+          <line x1="74" y1="278.4" x2="235" y2="278.4"/><circle cx="74" cy="278.4" r="3.4" fill="var(--green-2)"/><circle cx="235" cy="278.4" r="3.4" fill="var(--green-2)"/>
+        </g>
+        <text class="c-lbl" x="154.6" y="182" text-anchor="middle">38&Prime; clear</text>
+        <text class="c-lbl" x="154.6" y="380" text-anchor="middle">42&Prime; clear</text>
+
+        <!-- L2 fittings -->
+        <rect x="245.125" y="64.3" width="181.125" height="5" fill="var(--green)"/>
+        <g stroke="var(--green-2)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="255" y1="89.8" x2="416" y2="89.8"/><circle cx="255" cy="89.8" r="3.4" fill="var(--green-2)"/><circle cx="416" cy="89.8" r="3.4" fill="var(--green-2)"/>
+        </g>
+        <text class="c-lbl" x="335.7" y="240" text-anchor="middle">64&Prime; clear</text>
+        <g fill="var(--sheet)" stroke="var(--green)" stroke-width="1.25">
+          <rect x="245.125" y="384.2" width="181.125" height="43.7"/>
+          <rect x="245.125" y="427.9" width="181.125" height="43.7"/>
+        </g>
+        <g stroke="var(--brass)" stroke-width="3" stroke-linecap="round">
+          <line x1="305" y1="406" x2="366" y2="406"/>
+          <line x1="305" y1="449.7" x2="366" y2="449.7"/>
+        </g>
+
+        <!-- crown gap callout -->
+        <g stroke="var(--flag)" stroke-width="1">
+          <line x1="470" y1="30" x2="470" y2="44.375"/>
+          <line x1="466" y1="30" x2="474" y2="30"/><line x1="466" y1="44.375" x2="474" y2="44.375"/>
+          <line x1="470" y1="37" x2="496" y2="18"/>
+        </g>
+        <text class="s-lbl" x="498" y="15" text-anchor="end" fill="var(--flag)">3&frac18;&Prime; to ceiling</text>
+
+        <!-- bay labels -->
+        <text class="b-lbl" x="154.6" y="489" text-anchor="middle">L1 &mdash; DOUBLE HANG</text>
+        <text class="s-lbl" x="154.6" y="501" text-anchor="middle">nearest the door &middot; 39&frac38;&Prime;</text>
+        <text class="b-lbl" x="335.7" y="489" text-anchor="middle">L2 &mdash; LONG HANG</text>
+        <text class="s-lbl" x="335.7" y="501" text-anchor="middle">over 2 drawers &middot; 39&frac38;&Prime;</text>
+        <text class="s-lbl" x="64" y="516">&larr; DOOR WALL</text>
+        <text class="s-lbl" x="491.8" y="516" text-anchor="end">BACK WALL &rarr;</text>
+      </svg>
+    </div>
+    <div class="sheet-notes">
+      <span>Shelves <b>88&Prime;, 45&Prime;</b> &middot; rails <b>83&Prime;, 42&Prime;</b> &middot; drawers to <b>19&Prime;</b></span>
+      <span>Hanging on this wall: <b>9&prime;&nbsp;10&frac18;&Prime;</b></span>
+    </div>
+  </div>
+
+  <!-- ---------- A-3 RIGHT WALL ---------- -->
+  <div class="sheet">
+    <div class="sheet-bar">
+      <span class="sheet-no">A-3</span>
+      <h3>Right wall elevation &mdash; 93&Prime;</h3>
+      <span class="scale">1&Prime; = 4.6&nbsp;px</span>
+    </div>
+    <div class="sheet-body">
+      <svg viewBox="0 0 520 520" role="img" aria-label="Right wall elevation, mirrored: bay R1 double hang nearest the door, bay R2 single hang over a four drawer bank filling the bottom 45 inches.">
+        <defs>
+          <pattern id="hx3" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--ink-3)" stroke-width="1" opacity=".4"/>
+          </pattern>
+        </defs>
+
+        <line x1="48" y1="30" x2="500" y2="30" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="6 4"/>
+        <line x1="48" y1="471.6" x2="500" y2="471.6" stroke="var(--green)" stroke-width="2.5"/>
+
+        <line x1="60" y1="30" x2="60" y2="471.6" stroke="var(--brass)" stroke-width=".9"/>
+        <g stroke="var(--brass)" stroke-width=".9">
+          <line x1="56" y1="30" x2="64" y2="30"/><line x1="56" y1="44.375" x2="64" y2="44.375"/>
+          <line x1="56" y1="66.8" x2="64" y2="66.8"/><line x1="56" y1="89.8" x2="64" y2="89.8"/>
+          <line x1="56" y1="264.6" x2="64" y2="264.6"/><line x1="56" y1="278.4" x2="64" y2="278.4"/>
+          <line x1="56" y1="471.6" x2="64" y2="471.6"/>
+        </g>
+        <g class="d-lbl" text-anchor="end">
+          <text x="52" y="33">96&Prime;</text>
+          <text x="52" y="47.4">92&frac78;&Prime;</text>
+          <text x="52" y="69.8">88&Prime;</text>
+          <text x="52" y="92.8">83&Prime;</text>
+          <text x="52" y="262">45&Prime;</text>
+          <text x="52" y="285">42&Prime;</text>
+          <text x="52" y="474.6">0&Prime;</text>
+        </g>
+
+        <!-- R1 hang zones (always) -->
+        <rect x="310.675" y="89.8" width="181.125" height="174.8" fill="var(--hang)"/>
+        <rect x="310.675" y="278.4" width="181.125" height="193.2" fill="var(--hang)"/>
+
+        <!-- R2 option A: single hang over 4 drawers -->
+        <g class="optA">
+          <rect x="129.55" y="89.8" width="181.125" height="174.8" fill="var(--hang)"/>
+        </g>
+        <!-- R2 option B: double hang -->
+        <g class="optB" hidden>
+          <rect x="129.55" y="89.8" width="181.125" height="174.8" fill="var(--hang)"/>
+          <rect x="129.55" y="278.4" width="181.125" height="193.2" fill="var(--hang)"/>
+        </g>
+
+        <!-- frames -->
+        <rect x="129.55" y="44.375" width="181.125" height="427.225" fill="none" stroke="var(--green)" stroke-width="2"/>
+        <rect x="310.675" y="44.375" width="181.125" height="427.225" fill="none" stroke="var(--green)" stroke-width="2"/>
+
+        <!-- open return -->
+        <rect x="64" y="44.375" width="65.55" height="427.225" fill="url(#hx3)" stroke="var(--ink-3)" stroke-width=".75" stroke-dasharray="3 2"/>
+        <text class="s-lbl" x="96" y="250" text-anchor="middle" transform="rotate(-90 96 250)">OPEN 14&frac14;&Prime; &mdash; TOWER RETURNS</text>
+
+        <!-- R1 fittings -->
+        <rect x="310.675" y="64.3" width="181.125" height="5" fill="var(--green)"/>
+        <rect x="310.675" y="262.1" width="181.125" height="5" fill="var(--green)"/>
+        <g stroke="var(--green-2)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="320" y1="89.8" x2="482" y2="89.8"/><circle cx="320" cy="89.8" r="3.4" fill="var(--green-2)"/><circle cx="482" cy="89.8" r="3.4" fill="var(--green-2)"/>
+          <line x1="320" y1="278.4" x2="482" y2="278.4"/><circle cx="320" cy="278.4" r="3.4" fill="var(--green-2)"/><circle cx="482" cy="278.4" r="3.4" fill="var(--green-2)"/>
+        </g>
+        <text class="c-lbl" x="401.2" y="182" text-anchor="middle">38&Prime; clear</text>
+        <text class="c-lbl" x="401.2" y="380" text-anchor="middle">42&Prime; clear</text>
+
+        <!-- R2 shared: top shelf + rail -->
+        <rect x="129.55" y="64.3" width="181.125" height="5" fill="var(--green)"/>
+        <g stroke="var(--green-2)" stroke-width="2.5" stroke-linecap="round">
+          <line x1="139" y1="89.8" x2="301" y2="89.8"/><circle cx="139" cy="89.8" r="3.4" fill="var(--green-2)"/><circle cx="301" cy="89.8" r="3.4" fill="var(--green-2)"/>
+        </g>
+
+        <!-- R2 option A fittings: 4 drawers to 45" -->
+        <g class="optA">
+          <text class="c-lbl" x="220.1" y="182" text-anchor="middle">38&Prime; clear</text>
+          <g fill="var(--sheet)" stroke="var(--green)" stroke-width="1.25">
+            <rect x="129.55" y="264.6" width="181.125" height="51.75"/>
+            <rect x="129.55" y="316.35" width="181.125" height="51.75"/>
+            <rect x="129.55" y="368.1" width="181.125" height="51.75"/>
+            <rect x="129.55" y="419.85" width="181.125" height="51.75"/>
+          </g>
+          <g stroke="var(--brass)" stroke-width="3" stroke-linecap="round">
+            <line x1="190" y1="290.5" x2="251" y2="290.5"/>
+            <line x1="190" y1="342.2" x2="251" y2="342.2"/>
+            <line x1="190" y1="394" x2="251" y2="394"/>
+            <line x1="190" y1="445.7" x2="251" y2="445.7"/>
+          </g>
+        </g>
+
+        <!-- R2 option B fittings: double hang -->
+        <g class="optB" hidden>
+          <rect x="129.55" y="262.1" width="181.125" height="5" fill="var(--green)"/>
+          <g stroke="var(--green-2)" stroke-width="2.5" stroke-linecap="round">
+            <line x1="139" y1="278.4" x2="301" y2="278.4"/><circle cx="139" cy="278.4" r="3.4" fill="var(--green-2)"/><circle cx="301" cy="278.4" r="3.4" fill="var(--green-2)"/>
+          </g>
+          <text class="c-lbl" x="220.1" y="182" text-anchor="middle">38&Prime; clear</text>
+          <text class="c-lbl" x="220.1" y="380" text-anchor="middle">42&Prime; clear</text>
+        </g>
+
+        <!-- crown gap callout -->
+        <g stroke="var(--flag)" stroke-width="1">
+          <line x1="470" y1="30" x2="470" y2="44.375"/>
+          <line x1="466" y1="30" x2="474" y2="30"/><line x1="466" y1="44.375" x2="474" y2="44.375"/>
+          <line x1="470" y1="37" x2="496" y2="18"/>
+        </g>
+        <text class="s-lbl" x="498" y="15" text-anchor="end" fill="var(--flag)">3&frac18;&Prime; to ceiling</text>
+
+        <text class="b-lbl" x="220.1" y="489" text-anchor="middle"><tspan class="r2-title">R2 &mdash; SINGLE HANG</tspan></text>
+        <text class="s-lbl" x="220.1" y="501" text-anchor="middle"><tspan class="r2-note">over 4 drawers &middot; 39&frac38;&Prime;</tspan></text>
+        <text class="b-lbl" x="401.2" y="489" text-anchor="middle">R1 &mdash; DOUBLE HANG</text>
+        <text class="s-lbl" x="401.2" y="501" text-anchor="middle">nearest the door &middot; 39&frac38;&Prime;</text>
+        <text class="s-lbl" x="64" y="516">&larr; BACK WALL</text>
+        <text class="s-lbl" x="491.8" y="516" text-anchor="end">DOOR WALL &rarr;</text>
+      </svg>
+    </div>
+    <div class="sheet-notes">
+      <span>R2 drawers to <b class="swap" data-a="45&Prime;" data-b="&mdash;">45&Prime;</b> &middot; drawer count <b class="swap" data-a="4" data-b="0">4</b></span>
+      <span>Hanging on this wall: <b class="swap" data-a="9&prime; 10&frac18;&Prime;" data-b="13&prime; 1&frac12;&Prime;">9&prime; 10&frac18;&Prime;</b></span>
+    </div>
+  </div>
+
+  </div>
+</section>
+
+<!-- ============ A-4 BACK WALL ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">03</span>
+    <h2>The back wall tower</h2>
+    <span class="aside">29&frac12; &times; 13&frac34; &times; 92&frac78; &middot; scribed between the runs</span>
+  </div>
+
+  <div class="sheet">
+    <div class="sheet-bar">
+      <span class="sheet-no">A-4</span>
+      <h3>Back wall elevation &mdash; 78&Prime;</h3>
+      <span class="scale">1&Prime; = 4.6&nbsp;px</span>
+    </div>
+    <div class="sheet-body">
+      <svg viewBox="0 0 520 520" role="img" aria-label="Back wall elevation: the two run end panels flank a 29 and a half inch tower with shelves at 88, 74, 60, 51 and 42 inches over five drawers filling the bottom 40 inches.">
+        <defs>
+          <pattern id="hx4" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="7" stroke="var(--ink-3)" stroke-width="1" opacity=".4"/>
+          </pattern>
+        </defs>
+
+        <line x1="48" y1="30" x2="440" y2="30" stroke="var(--ink-3)" stroke-width="1" stroke-dasharray="6 4"/>
+        <line x1="48" y1="471.6" x2="440" y2="471.6" stroke="var(--green)" stroke-width="2.5"/>
+
+        <!-- height rule -->
+        <line x1="60" y1="30" x2="60" y2="471.6" stroke="var(--brass)" stroke-width=".9"/>
+        <g stroke="var(--brass)" stroke-width=".9">
+          <line x1="56" y1="30" x2="64" y2="30"/><line x1="56" y1="44.375" x2="64" y2="44.375"/>
+          <line x1="56" y1="66.8" x2="64" y2="66.8"/><line x1="56" y1="131.2" x2="64" y2="131.2"/>
+          <line x1="56" y1="195.6" x2="64" y2="195.6"/><line x1="56" y1="237" x2="64" y2="237"/>
+          <line x1="56" y1="278.4" x2="64" y2="278.4"/><line x1="56" y1="287.6" x2="64" y2="287.6"/>
+          <line x1="56" y1="471.6" x2="64" y2="471.6"/>
+        </g>
+        <g class="d-lbl" text-anchor="end">
+          <text x="52" y="33">96&Prime;</text>
+          <text x="52" y="47.4">92&frac78;&Prime;</text>
+          <text x="52" y="69.8">88&Prime;</text>
+          <text x="52" y="134.2">74&Prime;</text>
+          <text x="52" y="198.6">60&Prime;</text>
+          <text x="52" y="240">51&Prime;</text>
+          <text x="52" y="277">42&Prime;</text>
+          <text x="52" y="292.5" fill="var(--flag)">40&Prime;</text>
+          <text x="52" y="474.6">0&Prime;</text>
+        </g>
+
+        <!-- run end panels, seen end-on -->
+        <rect x="64" y="44.375" width="105.225" height="427.225" fill="url(#hx4)" stroke="var(--green)" stroke-width="1.5"/>
+        <rect x="317.575" y="44.375" width="105.225" height="427.225" fill="url(#hx4)" stroke="var(--green)" stroke-width="1.5"/>
+        <text class="s-lbl" x="116" y="250" text-anchor="middle" transform="rotate(-90 116 250)">LEFT RUN, END ON &mdash; 22&frac78;&Prime; DEEP</text>
+        <text class="s-lbl" x="370" y="250" text-anchor="middle" transform="rotate(-90 370 250)">RIGHT RUN, END ON &mdash; 22&frac78;&Prime; DEEP</text>
+
+        <!-- fillers -->
+        <rect x="169.225" y="44.375" width="6.325" height="427.225" fill="var(--brass)" opacity=".3" stroke="var(--brass)" stroke-width=".75"/>
+        <rect x="311.3" y="44.375" width="6.275" height="427.225" fill="var(--brass)" opacity=".3" stroke="var(--brass)" stroke-width=".75"/>
+
+        <!-- tower frame -->
+        <rect x="175.55" y="44.375" width="135.75" height="427.225" fill="var(--sheet)" stroke="var(--green)" stroke-width="2"/>
+
+        <!-- shelves -->
+        <g fill="var(--green)">
+          <rect x="175.55" y="64.3" width="135.75" height="5"/>
+          <rect x="175.55" y="128.7" width="135.75" height="5"/>
+          <rect x="175.55" y="193.1" width="135.75" height="5"/>
+          <rect x="175.55" y="234.5" width="135.75" height="5"/>
+          <rect x="175.55" y="275.9" width="135.75" height="5"/>
+        </g>
+
+        <!-- LED strip under the lit shelves -->
+        <g stroke="var(--brass-2)" stroke-width="2" stroke-dasharray="5 3">
+          <line x1="182" y1="72.5" x2="305" y2="72.5"/>
+          <line x1="182" y1="136.9" x2="305" y2="136.9"/>
+          <line x1="182" y1="201.3" x2="305" y2="201.3"/>
+        </g>
+
+        <!-- drawers -->
+        <g fill="var(--sheet)" stroke="var(--green)" stroke-width="1.25">
+          <rect x="175.55" y="287.6" width="135.75" height="36.8"/>
+          <rect x="175.55" y="324.4" width="135.75" height="36.8"/>
+          <rect x="175.55" y="361.2" width="135.75" height="36.8"/>
+          <rect x="175.55" y="398" width="135.75" height="36.8"/>
+          <rect x="175.55" y="434.8" width="135.75" height="36.8"/>
+        </g>
+        <g stroke="var(--brass)" stroke-width="3" stroke-linecap="round">
+          <line x1="221" y1="306" x2="266" y2="306"/>
+          <line x1="221" y1="342.8" x2="266" y2="342.8"/>
+          <line x1="221" y1="379.6" x2="266" y2="379.6"/>
+          <line x1="221" y1="416.4" x2="266" y2="416.4"/>
+          <line x1="221" y1="453.2" x2="266" y2="453.2"/>
+        </g>
+
+        <!-- dead 2 inch gap -->
+        <rect x="175.55" y="278.4" width="135.75" height="9.2" fill="var(--flag)" opacity=".28"/>
+
+        <!-- zone bracket -->
+        <g class="s-lbl" text-anchor="middle">
+          <text x="243.4" y="103">14&Prime; &middot; handbags, lit</text>
+          <text x="243.4" y="167">14&Prime; &middot; handbags, lit</text>
+          <text x="243.4" y="219">9&Prime; &middot; shoes</text>
+          <text x="243.4" y="260">9&Prime; &middot; shoes</text>
+        </g>
+
+        <!-- dead gap callout -->
+        <line x1="311.3" y1="283" x2="428" y2="283" stroke="var(--flag)" stroke-width="1"/>
+        <circle cx="311.3" cy="283" r="2.5" fill="var(--flag)"/>
+        <text class="s-lbl" x="432" y="280" fill="var(--flag)">2&Prime; dead gap</text>
+        <text class="s-lbl" x="432" y="291" fill="var(--flag)">at 40&ndash;42&Prime;</text>
+
+        <!-- overall width -->
+        <g stroke="var(--brass)" stroke-width="1">
+          <line x1="64" y1="492" x2="422.8" y2="492"/>
+          <line x1="64" y1="486" x2="64" y2="498"/><line x1="422.8" y1="486" x2="422.8" y2="498"/>
+          <line x1="175.55" y1="486" x2="175.55" y2="498"/><line x1="311.3" y1="486" x2="311.3" y2="498"/>
+        </g>
+        <rect x="225" y="483" width="38" height="17" fill="var(--sheet)"/>
+        <text class="d-lbl" x="243.4" y="495" text-anchor="middle">29&frac12;&Prime;</text>
+        <text class="d-lbl" x="243.4" y="515" text-anchor="middle">78&Prime; back wall &middot; 1&frac38;&Prime; filler each side</text>
+      </svg>
+    </div>
+    <div class="sheet-notes">
+      <span>Shelves <b>88, 74, 60, 51, 42</b> &middot; drawers to <b>40&Prime;</b></span>
+      <span>5 drawers &middot; <b>8&Prime; each</b> &middot; dashed brass = <b>LED strip</b> under the top three shelves</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAKEOFF ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">04</span>
+    <h2>Takeoff &mdash; what goes in the cart</h2>
+    <span class="aside">quantities follow the R2 switch above</span>
+  </div>
+
+  <div class="tw">
+    <table>
+      <caption>IKEA &mdash; PAX &amp; KOMPLEMENT</caption>
+      <thead>
+        <tr><th>Item</th><th>Size</th><th>Article no.</th><th class="n">Qty</th><th>Where</th></tr>
+      </thead>
+      <tbody>
+        <tr class="grp"><td colspan="5">Frames</td></tr>
+        <tr>
+          <td>PAX wall-mounted storage frame, white</td>
+          <td class="mono">39&frac38; &times; 22&frac78; &times; 92&frac78;</td>
+          <td class="art">705.881.67</td>
+          <td class="n">4</td>
+          <td class="dim">L1, L2, R1, R2</td>
+        </tr>
+        <tr>
+          <td>PAX wall-mounted storage frame, white</td>
+          <td class="mono">29&frac12; &times; 13&frac34; &times; 92&frac78;</td>
+          <td class="art dim">confirm in planner</td>
+          <td class="n">1</td>
+          <td class="dim">back tower</td>
+        </tr>
+        <tr class="grp"><td colspan="5">Interiors</td></tr>
+        <tr>
+          <td>KOMPLEMENT shelf</td>
+          <td class="mono">39&frac38; &times; 22&frac78;</td>
+          <td class="art dim">confirm in planner</td>
+          <td class="n"><span class="swap chg" data-a="6" data-b="7">6</span></td>
+          <td class="dim">88&Prime; on all four; 45&Prime; on L1, R1<span class="swap" data-a="" data-b=", R2"></span></td>
+        </tr>
+        <tr>
+          <td>KOMPLEMENT clothes rail</td>
+          <td class="mono">39&frac38;</td>
+          <td class="art dim">confirm in planner</td>
+          <td class="n"><span class="swap chg" data-a="6" data-b="7">6</span></td>
+          <td class="dim">83&Prime; on all four; 42&Prime; on L1, R1<span class="swap" data-a="" data-b=", R2"></span></td>
+        </tr>
+        <tr>
+          <td>KOMPLEMENT drawer</td>
+          <td class="mono">39&frac38; &times; 22&frac78;</td>
+          <td class="art dim">confirm in planner</td>
+          <td class="n"><span class="swap chg" data-a="6" data-b="2">6</span></td>
+          <td class="dim"><span class="swap" data-a="2 in L2, 4 in R2" data-b="2 in L2">2 in L2, 4 in R2</span></td>
+        </tr>
+        <tr>
+          <td>KOMPLEMENT shelf</td>
+          <td class="mono">29&frac12; &times; 13&frac34;</td>
+          <td class="art dim">confirm in planner</td>
+          <td class="n">5</td>
+          <td class="dim">88, 74, 60, 51, 42</td>
+        </tr>
+        <tr>
+          <td>KOMPLEMENT drawer</td>
+          <td class="mono">29&frac12; &times; 13&frac34;</td>
+          <td class="art dim">confirm in planner</td>
+          <td class="n">5</td>
+          <td class="dim">tower, bottom 40&Prime;</td>
+        </tr>
+        <tr class="tot">
+          <td>Frames 5 &middot; shelves <span class="swap" data-a="11" data-b="12">11</span> &middot; rails <span class="swap" data-a="6" data-b="7">6</span> &middot; drawers <span class="swap" data-a="11" data-b="7">11</span></td>
+          <td class="mono dim">&mdash;</td><td class="dim">&mdash;</td>
+          <td class="n"><span class="swap" data-a="33" data-b="31">33</span></td>
+          <td class="dim">line items</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tw" style="margin-top:14px">
+    <table>
+      <caption>Not from IKEA &mdash; quantities worked from the drawings</caption>
+      <thead><tr><th>Item</th><th class="n">Qty</th><th>Basis</th></tr></thead>
+      <tbody>
+        <tr><td>Flooring</td><td class="n">56 sq ft</td><td class="dim">78 &times; 93 = 50.4 sq ft, plus 10% waste</td></tr>
+        <tr><td>Paint &mdash; evergreen, walls + ceiling</td><td class="n">2 gal</td><td class="dim">&asymp;258 sq ft of surface, two coats</td></tr>
+        <tr><td>Paint &mdash; trim enamel, same colour</td><td class="n">1 qt</td><td class="dim">base, crown, casing, door</td></tr>
+        <tr><td>Base molding, paint grade</td><td class="n">8 lf</td><td class="dim">only <span class="mono">48&frac12;&Prime;</span> of wall stays exposed &mdash; the door wall</td></tr>
+        <tr><td>Crown molding, paint grade</td><td class="n">32 lf</td><td class="dim">28&frac12; lf perimeter &mdash; <b style="color:var(--flag)">must be &le;3&Prime; tall, see check 02</b></td></tr>
+        <tr><td>Scribe / filler stock, 1&times;3</td><td class="n">4 pcs</td><td class="dim">two <span class="mono">1&frac38;&Prime;</span> tower scribes, plus door-wall returns</td></tr>
+        <tr><td>Solid door slab</td><td class="n">1</td><td class="dim">or reverse the existing slab</td></tr>
+        <tr><td>LED rod light</td><td class="n">4</td><td class="dim">one per bay &mdash; there are <span class="swap" data-a="6" data-b="7">6</span> rails, see check 07</td></tr>
+        <tr><td>LED strip, tower</td><td class="n">1 run</td><td class="dim">under the 88, 74, 60 shelves</td></tr>
+        <tr><td>Ceiling fixture, brass, warm</td><td class="n">1</td><td class="dim">12&ndash;16&Prime; dia., centred on the 32&frac14;&Prime; aisle</td></tr>
+        <tr><td>Dimmer switch</td><td class="n">1</td><td class="dim">&mdash;</td></tr>
+        <tr><td>Full-length mirror, brass frame</td><td class="n">1</td><td class="dim">door wall, beside the opening</td></tr>
+        <tr><td>Upholstered bench</td><td class="n">1</td><td class="dim">16 &times; 32 &mdash; see check 09 for where it fits</td></tr>
+        <tr><td>Wood hangers, matching</td><td class="n">80</td><td class="dim">rail capacity is <span class="swap" data-a="&asymp;190" data-b="&asymp;220">&asymp;190</span> at 1&frac14;&Prime; spacing</td></tr>
+        <tr><td>Brass drawer pulls</td><td class="n"><span class="swap chg" data-a="11" data-b="7">11</span></td><td class="dim">one per drawer</td></tr>
+        <tr><td>Brass hooks</td><td class="n">4</td><td class="dim">door wall or an open corner</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ BUDGET ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">05</span>
+    <h2>Where the $5,570 goes</h2>
+    <span class="aside">worked back from the discount figure</span>
+  </div>
+  <div class="money">
+    <div><span class="k">Budget</span><span class="v">$5,570</span><small>The number to hold.</small></div>
+    <div class="accent"><span class="k">IKEA order, implied</span><span class="v">&asymp;$2,550</span><small>Your &ldquo;roughly $255&rdquo; discount note is 10% of this &mdash; so that is the PAX + KOMPLEMENT subtotal you were assuming.</small></div>
+    <div><span class="k">IKEA, after 10%</span><span class="v">&asymp;$2,295</span><small>Only if the order lands before Sep&nbsp;7.</small></div>
+    <div><span class="k">Everything else</span><span class="v">&asymp;$3,275</span><small>Trim, paint, flooring, door, lighting, mirror, bench, hardware &mdash; and all three trades.</small></div>
+  </div>
+  <p style="font-family:var(--serif);font-size:15px;color:var(--ink-2);margin-top:12px;max-width:72ch">
+    That last tile is the one to pressure-test. Carpenter, electrician and flooring against $3,275 is tight
+    once the door reversal and the fixture relocation are in it. Price the electrician first &mdash; four rod
+    lights, a tower strip, a moved ceiling box and a dimmer is the line most likely to move. If it breaks the
+    budget, bay R2 is the release valve: switching it to double hang drops four drawers and four pulls.
+  </p>
+</section>
+
+<!-- ============ CHECKS ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">06</span>
+    <h2>Eleven things to settle before you order</h2>
+    <span class="aside">worst consequence first</span>
+  </div>
+  <div class="checks">
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">01 &middot; blocker</span><h3>Measure the ceiling in four places.</h3></div>
+      <p>The whole set is drawn to <span class="mono">92&frac78;&Prime;</span> frames under a <span class="mono">96&Prime;</span> ceiling. At <span class="mono">94&Prime;</span> or <span class="mono">95&Prime;</span> you drop to the <span class="mono">79&frac14;&Prime;</span> frames &mdash; and then the 88&Prime; shelf, the 83&Prime; rail and the 64&Prime; long hang all disappear. That is a different closet, not an adjustment. Nothing else on this page is worth doing until this number is confirmed.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">02 &middot; clash</span><h3>Your crown molding does not fit.</h3></div>
+      <p>A <span class="mono">92&frac78;&Prime;</span> frame under a <span class="mono">96&Prime;</span> ceiling leaves <span class="mono">3&frac18;&Prime;</span>. Standard crown runs <span class="mono">3&frac12;&ndash;4&frac12;&Prime;</span> &mdash; it will not land above the frames. Three ways out: a <span class="mono">3&Prime;</span> profile, a flat filler panel with a small cap, or crown on the door wall only and a clean scribed filler everywhere else. Decide this before you buy stock, because it also changes the 32 lf.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">03 &middot; clash</span><h3>Only 1&frac38;&Prime; between the frames and the door opening.</h3></div>
+      <p>A <span class="mono">29&frac12;&Prime;</span> opening centred on a <span class="mono">78&Prime;</span> wall starts <span class="mono">24&frac14;&Prime;</span> from each corner, and the runs come out <span class="mono">22&frac78;&Prime;</span>. Your instinct was right: the closet-side casing comes off entirely, and even then you have a hair over an inch of reveal. Check the jamb is plumb while you are in there &mdash; you cannot scribe your way out of a negative number.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">04 &middot; clash</span><h3>L2 and R2 put opposing drawer banks in a 32&frac14;&Prime; aisle.</h3></div>
+      <p>Both drawer bays sit at the same depth into the room, facing each other. A full-extension KOMPLEMENT drawer comes out around <span class="mono">20&Prime;</span>, leaving roughly <span class="mono">12&Prime;</span> to squeeze past &mdash; and nothing at all if two people open drawers at once, which is the whole point of a shared closet. Stagger the banks by moving L2's drawers to L1, or take R2 to double hang.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">05 &middot; fix</span><h3>The tower's 42&Prime; shelf strands 2&Prime;.</h3></div>
+      <p>Five drawers fill the bottom <span class="mono">40&Prime;</span>, then the first shoe shelf sits at <span class="mono">42&Prime;</span>. That <span class="mono">2&Prime;</span> between them holds nothing. Either drop the shelf to sit right on the drawer stack, or go to four drawers and start the shoes lower &mdash; you gain a third shoe row either way.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">06 &middot; verify</span><h3>Four drawers will not evenly fill 45&Prime;.</h3></div>
+      <p>That is an <span class="mono">11&frac14;&Prime;</span> pitch, and KOMPLEMENT drawer heights snap to the frame's hole spacing rather than to whatever number you want. Four medium drawers land closer to <span class="mono">38&Prime;</span>, leaving <span class="mono">7&Prime;</span> loose under the rail. Let the planner set the stack, then read the real rail height back off it &mdash; the same applies to the tower's five-in-40&Prime;.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">07 &middot; verify</span><h3>Four rod lights, six rails.</h3></div>
+      <p>As drawn there are <span class="mono"><span class="swap" data-a="six" data-b="seven">six</span></span> rails and four rod lights, so <span class="swap" data-a="two" data-b="three">two</span> of them go unlit &mdash; almost certainly the lower rails in L1 and R1, which are the ones you reach into every morning. Either buy <span class="swap" data-a="six" data-b="seven">six</span>, or decide on purpose that the lower rails run dark and let the ceiling fixture cover them.</p>
+    </div>
+
+    <div class="chk">
+      <div class="chk-h"><span class="tag">08 &middot; verify</span><h3>Two of your three article numbers are not in this plan.</h3></div>
+      <p><span class="mono">705.881.67</span> is right, and you need four of it. But <span class="mono">405.881.59</span> is a <span class="mono">19&frac58;&Prime;</span> frame that appears nowhere here, and <span class="mono">805.881.62</span> is <span class="mono">29&frac12; &times; 22&frac78; &times; 79&frac18;</span> &mdash; wrong depth and wrong height for the tower, which needs <span class="mono">29&frac12; &times; 13&frac34; &times; 92&frac78;</span>. Take the tower number and every KOMPLEMENT number straight off the planner's own list.</p>
+    </div>
+
+    <div class="chk note">
+      <div class="chk-h"><span class="tag">09 &middot; note</span><h3>The bench does not go in the middle.</h3></div>
+      <p>A <span class="mono">16 &times; 32&Prime;</span> bench set in the aisle leaves <span class="mono">16&frac14;&Prime;</span> to walk past it. But the plan hands you two open corners behind the runs, <span class="mono">22&frac78; &times; 14&frac14;&Prime;</span> each, currently doing nothing. One takes the bench, the other takes a hamper &mdash; and neither costs you a bay.</p>
+    </div>
+
+    <div class="chk note">
+      <div class="chk-h"><span class="tag">10 &middot; note</span><h3>Two numbers in the sheet do not match the frames.</h3></div>
+      <p>Section 2 lists the frames at <span class="mono">93&frac18;&Prime;</span> tall; the article you confirmed is <span class="mono">92&frac78;&Prime;</span>. And <span class="mono">39&frac38; &times; 2 = 78&frac34;</span>, not <span class="mono">78&frac58;</span> &mdash; so the leftover wall is <span class="mono">14&frac14;&Prime;</span>, the tower gap is <span class="mono">32&frac14;&Prime;</span>, and the fillers are <span class="mono">1&frac38;&Prime;</span> a side. Everything on these drawings uses the corrected figures. Also worth confirming: these are <em>wall-mounted</em> frames, so if they hang clear of the floor, every height on this page shifts by that gap.</p>
+    </div>
+
+    <div class="chk ok">
+      <div class="chk-h"><span class="tag">11 &middot; checks out</span><h3>Flooring, hanging and pull counts all reconcile.</h3></div>
+      <p><span class="mono">78 &times; 93</span> is <span class="mono">50.4</span> sq ft, so your ~50 plus 10% is right &mdash; buy <span class="mono">56</span>. The plan yields <span class="mono"><span class="swap" data-a="19&prime; 8&frac14;&Prime;" data-b="22&prime; 11&frac58;&Prime;">19&prime; 8&frac14;&Prime;</span></span> of hanging across <span class="swap" data-a="six" data-b="seven">six</span> rails, and <span class="mono"><span class="swap" data-a="11" data-b="7">11</span></span> drawers against <span class="mono"><span class="swap" data-a="11" data-b="7">11</span></span> brass pulls. Your 80 hangers fill a little under half the rail, which is the right place to start.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ SEQUENCE ============ -->
+<section class="sec">
+  <div class="sec-head">
+    <span class="no">07</span>
+    <h2>Order of work</h2>
+    <span class="aside">the sequence is load-bearing</span>
+  </div>
+  <ol class="seq">
+    <li><b>Strip and patch.</b><span>Wire shelving, brackets, anchors out. Patch, sand. Then measure the ceiling and mark every stud on all three walls &mdash; check 01 before anything is bought.</span></li>
+    <li><b>Reverse the door swing.</b><span>Carpenter. Pull the closet-side casing while the door is off; check 03 says it is not going back on.</span></li>
+    <li><b>Flooring.</b><span>Wall to wall, before cabinetry. Nothing sits on top of a floor you still have to slide in.</span></li>
+    <li><b>Electrical rough-in.</b><span>Rod-light drops in four bays, tower strip feed, ceiling box relocated to the aisle centreline, dimmer. The room is never this empty again.</span></li>
+    <li><b>Paint.</b><span>Walls, ceiling and trim in the one evergreen. Cut in behind where the runs land &mdash; you will see slivers of it forever.</span></li>
+    <li><b>Set the two runs.</b><span>L1 first, hard against the door wall, anchored into studs. Work back. Confirm the run stops at 78&frac34;&Prime;.</span></li>
+    <li><b>Scribe the tower between them.</b><span>Set it centred, then fit the two 1&frac38;&Prime; fillers to the actual gap you measure &mdash; not the one on this drawing.</span></li>
+    <li><b>Trim, caulk, touch up.</b><span>Base on the door wall only. Crown by whichever of the three answers you picked in check 02.</span></li>
+    <li><b>Lighting terminations and hardware.</b><span>Rods, strip, fixture, dimmer. Then pulls, hooks, mirror, bench, hangers.</span></li>
+  </ol>
+</section>
+
+<div class="foot">
+  <span>Drawn from the build sheet, corrected against the frame dimensions.</span>
+  <span>All dimensions AFF &middot; verify on site before ordering.</span>
+  <span>Discount window closes Sep 7.</span>
+</div>
+
+</div>
+
+<script>
+(function(){
+  var a=document.getElementById('btn-a'),b=document.getElementById('btn-b'),mode='a';
+  var hang={a:'19&prime; 8¼″',b:'22&prime; 11⅝″'};
+  function apply(m){
+    mode=m;
+    a.setAttribute('aria-pressed', m==='a');
+    b.setAttribute('aria-pressed', m==='b');
+    document.querySelectorAll('.optA').forEach(function(el){ el.hidden = (m!=='a'); });
+    document.querySelectorAll('.optB').forEach(function(el){ el.hidden = (m!=='b'); });
+    document.querySelectorAll('.swap').forEach(function(el){
+      var v = el.getAttribute(m==='a'?'data-a':'data-b');
+      if(v!==null) el.textContent = v;
+    });
+    document.getElementById('m-hang').innerHTML = hang[m];
+    var t=document.querySelector('.r2-title'), n=document.querySelector('.r2-note');
+    var p1=document.querySelector('.r2-mode'), p2=document.querySelector('.r2-mode2');
+    if(m==='a'){
+      t.textContent='R2 — SINGLE HANG'; n.textContent='over 4 drawers · 39⅜″';
+      p1.textContent='single hang'; p2.textContent='+ 4 drawers';
+    }else{
+      t.textContent='R2 — DOUBLE HANG'; n.textContent='matches R1 · 39⅜″';
+      p1.textContent='double hang'; p2.textContent='no drawers';
+    }
+  }
+  a.addEventListener('click',function(){apply('a');});
+  b.addEventListener('click',function(){apply('b');});
+  apply('a');
+})();
+</script>
