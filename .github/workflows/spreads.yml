@@ -1,0 +1,71 @@
+name: SPREADS Board
+
+on:
+  schedule:
+    # Every 15 minutes, matching the old Apps Script trigger. GitHub's scheduler
+    # is best-effort and can run late under load — if you see missed kickoff
+    # emails, widen KICKOFF_WINDOW_MIN rather than tightening this cron.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_email:
+        description: 'Email the board now, regardless of kickoff times'
+        type: boolean
+        default: false
+
+# Never let two runs build the board at once — they would fight over state.
+concurrency:
+  group: spreads-board
+  cancel-in-progress: false
+
+jobs:
+  board:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: spreads
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: spreads/package-lock.json
+
+      - run: npm ci
+
+      - name: Install Chromium for PDF export
+        run: npx playwright install --with-deps chromium
+
+      # Carries state.json (last-known lines + which kickoff waves were emailed)
+      # between runs. A unique key per run with a shared prefix means each run
+      # restores the newest previous state and saves its own.
+      - name: Restore board state
+        uses: actions/cache@v4
+        with:
+          path: spreads/state.json
+          key: spreads-state-${{ github.run_id }}
+          restore-keys: spreads-state-
+
+      - name: Build board and send if a kickoff wave is due
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          PINNACLE_KEY: ${{ secrets.PINNACLE_KEY }}
+          KICKOFF_WINDOW_MIN: ${{ vars.KICKOFF_WINDOW_MIN }}
+        run: node src/index.js ${{ inputs.force_email && '--force-email' || '' }}
+
+      - name: Upload board
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: board-${{ github.run_id }}
+          path: spreads/out/
+          retention-days: 7
+          if-no-files-found: ignore
