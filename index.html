@@ -263,7 +263,7 @@
   }
 
   var EDIT_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/edit";
-  var CSV_URL  = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv";
+  var CSV_URL  = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv&headers=1";
 
   // Snapshot used only if the live sheet can't be reached from this viewer.
   var FALLBACK_CSV =
@@ -276,13 +276,13 @@
     '"2026-08-30","Sunday","BC Volleyball","vs Quinnipiac","Margot Connell Recreation Center","11:00 AM","1:00 PM","Kadden","","","","","Chestnut Hill Invite"\n' +
     '"2026-09-02","Wednesday","Northeastern Volleyball","Walk Thru","Cabot Center","11:30 AM","11:30 AM","","","","","","Walk thru"\n' +
     '"2026-09-03","Thursday","BC Volleyball","vs Stonehill","Margot Connell Recreation Center","5:00 PM","7:00 PM","Garrett","","","","","Boston College Invitational"\n' +
-    '"2026-09-04","Friday","BC Volleyball","vs Bucknell","Margot Connell Recreation Center","5:00 PM","7:00 PM","Garrett","","","","","Boston College Invitational"\n' +
-    '"2026-09-04","Friday","Northeastern Volleyball","vs Holy Cross","Cabot Center","4:00 PM","6:00 PM","Adrian","","","","",""\n' +
+    '"2026-09-04","Friday","BC Volleyball","vs Bucknell","Margot Connell Recreation Center","5:00 PM","7:00 PM","Anthony","","","","","Boston College Invitational"\n' +
+    '"2026-09-04","Friday","Northeastern Volleyball","vs Holy Cross","Cabot Center","4:00 PM","6:00 PM","Garrett","","","","",""\n' +
     '"2026-09-05","Saturday","BC Volleyball","vs UNH","Margot Connell Recreation Center","12:00 PM","2:00 PM","Garrett","","","","","Boston College Invitational"\n' +
     '"2026-09-05","Saturday","Northeastern Volleyball","vs Fairfield","Cabot Center","3:00 PM","5:00 PM","Garrett","","","","",""\n' +
     '"2026-09-05","Saturday","Rhode Island FC","vs Louisville City FC","Centreville Bank Stadium","4:30 PM","7:30 PM","Kadden","","","","","USL Championship"\n' +
-    '"2026-09-06","Sunday","Northeastern Volleyball","vs Harvard","Cabot Center","12:00 PM","2:00 PM","Adrian","","","","",""\n' +
-    '"2026-09-09","Wednesday","BC Volleyball","vs Vanderbilt","Margot Connell Recreation Center","5:00 PM","7:00 PM","Garrett","","","","","Showdown at the Net - game time TBD, check bceagles.com"\n' +
+    '"2026-09-06","Sunday","Northeastern Volleyball","vs Harvard","Cabot Center","12:00 PM","2:00 PM","Kadden","","","","",""\n' +
+    '"2026-09-09","Wednesday","BC Volleyball","vs Vanderbilt","Margot Connell Recreation Center","5:00 PM","7:00 PM","Adrian","","","","","Showdown at the Net - game time TBD, check bceagles.com"\n' +
     '"2026-09-11","Friday","BC Football","vs Rutgers","Alumni Stadium","4:30 PM","7:30 PM","Garrett","","","","","Season home opener"\n' +
     '"2026-09-19","Saturday","BC Football","vs Maine","Alumni Stadium","11:00 AM","2:00 PM","Garrett","","","","",""\n' +
     '"2026-09-20","Sunday","Boston Legacy FC","vs Houston Dash","Centreville Bank Stadium","11:00 AM","2:00 PM","Garrett","","","","","NWSL"\n' +
@@ -297,31 +297,31 @@
     '"2026-10-09","Friday","Northeastern Volleyball","vs Elon","Cabot Center","4:00 PM","6:00 PM","Anthony","","","","","CAA"\n' +
     '"2026-10-09","Friday","BC Men\'s Hockey","vs Alaska","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Season opener"\n' +
     '"2026-10-10","Saturday","Northeastern Volleyball","vs Elon","Cabot Center","11:00 AM","1:00 PM","Adrian","","","","","CAA"\n' +
-    '"2026-10-10","Saturday","BC Women\'s Hockey","vs Providence","Kelley Rink at Conte Forum","TBD","TBD","Anthony","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
-    '"2026-10-11","Sunday","Northeastern Women\'s Hockey","vs New Hampshire","Walter Brown Arena (BU)","TBD","TBD","Adrian","","","","","Hockey East - venue per NU marketing grid"\n' +
+    '"2026-10-10","Saturday","BC Women\'s Hockey","vs Providence","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Anthony","","","","",""\n' +
+    '"2026-10-11","Sunday","Northeastern Women\'s Hockey","vs New Hampshire","Walter Brown Arena (BU)","1:00 PM","4:00 PM","Adrian","","","","","Hockey East - Walter Brown Arena confirmed"\n' +
     '"2026-10-14","Wednesday","Rhode Island FC","vs Loudoun United FC","Centreville Bank Stadium","4:30 PM","7:30 PM","Garrett","","","","","USL Championship - rescheduled home opener"\n' +
-    '"2026-10-14","Wednesday","BC Women\'s Hockey","vs Merrimack","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2026-10-14","Wednesday","BC Women\'s Hockey","vs Merrimack","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Kadden","","","","",""\n' +
     '"2026-10-15","Thursday","BC Men\'s Hockey","vs St. Cloud State","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","",""\n' +
     '"2026-10-17","Saturday","BC Football","vs Pittsburgh","Alumni Stadium","TBD","TBD","Garrett","","","","","Kickoff TBD - TV window, check bceagles.com"\n' +
     '"2026-10-17","Saturday","Rhode Island FC","vs Pittsburgh Riverhounds SC","Centreville Bank Stadium","4:30 PM","7:30 PM","Kadden","","","","","USL Championship"\n' +
     '"2026-10-17","Saturday","BC Men\'s Hockey","vs St. Cloud State","Kelley Rink at Conte Forum","TBD","TBD","Adrian","","","","",""\n' +
     '"2026-10-23","Friday","BC Volleyball","vs Virginia Tech","Margot Connell Recreation Center","5:00 PM","7:00 PM","Garrett","","","","","ACC"\n' +
-    '"2026-10-23","Friday","BC Women\'s Hockey","vs Cornell","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","",""\n' +
+    '"2026-10-23","Friday","BC Women\'s Hockey","vs Cornell","Kelley Rink at Conte Forum","3:00 PM","6:00 PM","Kadden","","","","",""\n' +
     '"2026-10-24","Saturday","Northeastern Volleyball","vs Stony Brook","Cabot Center","12:00 PM","2:00 PM","Adrian","","","","","CAA"\n' +
-    '"2026-10-24","Saturday","BC Women\'s Hockey","vs Cornell","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","",""\n' +
+    '"2026-10-24","Saturday","BC Women\'s Hockey","vs Cornell","Kelley Rink at Conte Forum","12:00 PM","3:00 PM","Kadden","","","","",""\n' +
     '"2026-10-25","Sunday","BC Volleyball","vs Virginia","Margot Connell Recreation Center","11:00 AM","1:00 PM","Garrett","","","","","ACC"\n' +
     '"2026-10-25","Sunday","Northeastern Volleyball","vs Stony Brook","Cabot Center","12:00 PM","2:00 PM","Kadden","","","","","CAA"\n' +
     '"2026-10-25","Sunday","BC Men\'s Basketball","vs MIT","Conte Forum","TBD","TBD","Garrett","","","","","Exhibition"\n' +
-    '"2026-10-26","Monday","BC Women\'s Hockey","vs Minnesota State","Kelley Rink at Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
+    '"2026-10-26","Monday","BC Women\'s Hockey","vs Vermont","Kelley Rink at Conte Forum","8:00 AM","11:00 AM","Garrett","","","","","Opponent changed (was Minnesota State) - 11 AM school-day game"\n' +
     '"2026-10-30","Friday","BC Men\'s Hockey","vs Northeastern","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
     '"2026-10-30","Friday","BC Women\'s Hockey","vs Vermont","Kelley Rink at Conte Forum","TBD","TBD","Anthony","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
-    '"2026-10-31","Saturday","Northeastern Men\'s Hockey","vs Boston College","Venue TBA","TBD","TBD","Garrett","","","","","Venue TBA (Matthews demolished)"\n' +
-    '"2026-10-31","Saturday","BC Women\'s Hockey","vs Vermont","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2026-10-31","Saturday","BC Men\'s Hockey","vs Northeastern","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Moved to Conte Forum (Matthews demolished) - back-to-back with Oct 30 game"\n' +
+    '"2026-10-31","Saturday","BC Women\'s Hockey","vs Vermont","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Kadden","","","","",""\n' +
     '"2026-11-02","Monday","BC Women\'s Basketball","vs Holy Cross","Conte Forum","3:00 PM","6:00 PM","Garrett","","","","","Season opener"\n' +
     '"2026-11-02","Monday","Northeastern Women\'s Basketball","vs Albany","Cabot Center","4:00 PM","7:00 PM","Adrian","","","","","Home opener"\n' +
     '"2026-11-03","Tuesday","BC Men\'s Basketball","vs Wagner","Conte Forum","TBD","TBD","Garrett","","","","","Season opener"\n' +
     '"2026-11-05","Thursday","BC Men\'s Hockey","vs Vermont","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
-    '"2026-11-05","Thursday","BC Women\'s Hockey","vs UConn","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2026-11-05","Thursday","BC Women\'s Hockey","vs UConn","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Kadden","","","","",""\n' +
     '"2026-11-06","Friday","BC Men\'s Hockey","vs Vermont","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
     '"2026-11-07","Saturday","BC Football","vs Florida State","Alumni Stadium","TBD","TBD","Garrett","","","","","Kickoff TBD - TV window, check bceagles.com"\n' +
     '"2026-11-08","Sunday","BC Volleyball","vs Syracuse","Margot Connell Recreation Center","11:00 AM","1:00 PM","Kadden","","","","","ACC"\n' +
@@ -338,9 +338,9 @@
     '"2026-11-15","Sunday","Northeastern Volleyball","vs William & Mary","Cabot Center","12:00 PM","2:00 PM","Anthony","","","","","CAA"\n' +
     '"2026-11-15","Sunday","BC Men\'s Basketball","vs New Hampshire","Conte Forum","TBD","TBD","Adrian","","","","",""\n' +
     '"2026-11-17","Tuesday","BC Women\'s Basketball","vs Merrimack","Conte Forum","3:00 PM","6:00 PM","Garrett","","","","",""\n' +
-    '"2026-11-19","Thursday","Northeastern Women\'s Hockey","vs Maine","Walter Brown Arena (BU)","TBD","TBD","Adrian","","","","","Hockey East - venue per NU marketing grid"\n' +
+    '"2026-11-19","Thursday","Northeastern Women\'s Hockey","vs Maine","Walter Brown Arena (BU)","3:00 PM","6:00 PM","Adrian","","","","","Hockey East - Walter Brown Arena confirmed"\n' +
     '"2026-11-20","Friday","BC Women\'s Basketball","vs UMass","Conte Forum","3:00 PM","6:00 PM","Garrett","","","","",""\n' +
-    '"2026-11-20","Friday","Northeastern Women\'s Hockey","vs Maine","Bentley Arena","TBD","TBD","Adrian","","","","","Hockey East - venue per NU marketing grid"\n' +
+    '"2026-11-20","Friday","Northeastern Women\'s Hockey","vs Maine","Bentley Arena","4:00 PM","7:00 PM","Adrian","","","","","Hockey East - Bentley Arena, Waltham"\n' +
     '"2026-11-21","Saturday","BC Football","vs Syracuse","Alumni Stadium","TBD","TBD","Garrett","","","","","Kickoff TBD - TV window, check bceagles.com"\n' +
     '"2026-11-21","Saturday","Northeastern Women\'s Basketball","vs Bryant","Cabot Center","10:00 AM","1:00 PM","Anthony","","","","",""\n' +
     '"2026-11-22","Sunday","BC Men\'s Basketball","vs NJIT","Conte Forum","TBD","TBD","Adrian","","","","",""\n' +
@@ -348,56 +348,74 @@
     '"2026-11-28","Saturday","BC Volleyball","vs California","Margot Connell Recreation Center","11:00 AM","1:00 PM","Garrett","","","","","ACC - regular season finale"\n' +
     '"2026-11-28","Saturday","Northeastern Women\'s Basketball","vs Merrimack","Cabot Center","10:00 AM","1:00 PM","Adrian","","","","",""\n' +
     '"2026-12-02","Wednesday","Northeastern Men\'s Basketball","vs Holy Cross","Cabot Center","4:00 PM","7:00 PM","Garrett","","","","",""\n' +
-    '"2026-12-03","Thursday","Northeastern Women\'s Hockey","vs Boston College","Walter Brown Arena (BU)","TBD","TBD","Garrett","","","","","Hockey East - venue per NU marketing grid"\n' +
+    '"2026-12-03","Thursday","Northeastern Women\'s Hockey","vs Boston College","Walter Brown Arena (BU)","3:00 PM","6:00 PM","Garrett","","","","","Hockey East - Walter Brown Arena confirmed"\n' +
     '"2026-12-04","Friday","BC Men\'s Hockey","vs UMass Lowell","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
     '"2026-12-05","Saturday","BC Men\'s Basketball","vs UMass Lowell","Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
     '"2026-12-05","Saturday","BC Women\'s Hockey","vs Northeastern","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
     '"2026-12-06","Sunday","Northeastern Men\'s Basketball","vs Princeton","Cabot Center","10:00 AM","1:00 PM","Anthony","","","","",""\n' +
     '"2026-12-09","Wednesday","BC Men\'s Basketball","vs Northeastern","Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
-    '"2026-12-10","Thursday","BC Women\'s Basketball","vs Bryant","Conte Forum","8:00 AM","11:00 AM","Garrett","","","","","ACC home slate not yet released"\n' +
+    '"2026-12-10","Thursday","BC Women\'s Basketball","vs Bryant","Conte Forum","8:00 AM","11:00 AM","Garrett","","","","",""\n' +
     '"2026-12-12","Saturday","BC Men\'s Basketball","vs George Washington","Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
     '"2026-12-12","Saturday","Northeastern Women\'s Basketball","vs Yale","Cabot Center","10:00 AM","1:00 PM","Kadden","","","","",""\n' +
     '"2026-12-19","Saturday","Northeastern Men\'s Basketball","vs Rhode Island","Cabot Center","10:00 AM","1:00 PM","Adrian","","","","",""\n' +
     '"2026-12-20","Sunday","BC Men\'s Basketball","vs New Haven","Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
-    '"2026-12-22","Tuesday","BC Men\'s Basketball","vs Stonehill","Conte Forum","TBD","TBD","Garrett","","","","","ACC home slate not yet released"\n' +
+    '"2026-12-22","Tuesday","BC Men\'s Basketball","vs Stonehill","Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
     '"2026-12-22","Tuesday","Northeastern Women\'s Basketball","vs UMass Lowell","Cabot Center","8:00 AM","11:00 AM","Anthony","","","","","BPS game"\n' +
-    '"2027-01-01","Friday","BC Women\'s Hockey","vs Bemidji State","Kelley Rink at Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
+    '"2026-12-31","Thursday","BC Women\'s Basketball","vs Louisville","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-01-01","Friday","BC Women\'s Hockey","vs Bemidji State","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Garrett","","","","",""\n' +
     '"2027-01-01","Friday","Northeastern Women\'s Basketball","vs Hofstra","Cabot Center","10:00 AM","1:00 PM","Adrian","","","","","CAA opener"\n' +
-    '"2027-01-02","Saturday","BC Women\'s Hockey","vs Bemidji State","Kelley Rink at Conte Forum","TBD","TBD","Garrett","","","","",""\n' +
+    '"2026-12-31","Thursday","BC Women\'s Hockey","vs Bemidji State","Kelley Rink at Conte Forum","3:00 PM","6:00 PM","Garrett","","","","","Moved from Jan 2 - New Year\'s Eve game"\n' +
+    '"2027-01-02","Saturday","BC Men\'s Basketball","vs North Carolina","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-01-03","Sunday","Northeastern Women\'s Basketball","vs Drexel","Cabot Center","10:00 AM","1:00 PM","Adrian","","","","","CAA"\n' +
+    '"2027-01-03","Sunday","BC Women\'s Basketball","vs Florida State","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-01-05","Tuesday","BC Men\'s Basketball","vs Clemson","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-01-07","Thursday","Northeastern Men\'s Basketball","vs William & Mary","Cabot Center","4:00 PM","7:00 PM","Adrian","","","","","CAA"\n' +
-    '"2027-01-08","Friday","BC Men\'s Hockey","vs Stonehill","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Non-conference"\n' +
-    '"2027-01-08","Friday","Northeastern Women\'s Hockey","vs Providence","Bentley Arena","TBD","TBD","Adrian","","","","","Hockey East - venue per NU marketing grid"\n' +
-    '"2027-01-08","Friday","BC Women\'s Hockey","vs Holy Cross","Kelley Rink at Conte Forum","TBD","TBD","Anthony","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2027-01-07","Thursday","BC Women\'s Basketball","vs SMU","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-01-09","Saturday","BC Men\'s Hockey","vs Stonehill","Kelley Rink at Conte Forum","10:00 AM","1:00 PM","Garrett","","","","","Moved from Jan 8 - Saturday matinee"\n' +
+    '"2027-01-08","Friday","Northeastern Women\'s Hockey","vs Providence","Bentley Arena","4:00 PM","7:00 PM","Adrian","","","","","Hockey East - Bentley Arena, Waltham"\n' +
+    '"2027-01-08","Friday","BC Women\'s Hockey","vs Holy Cross","Kelley Rink at Conte Forum","3:00 PM","6:00 PM","Anthony","","","","",""\n' +
     '"2027-01-09","Saturday","Northeastern Men\'s Basketball","vs Hampton","Cabot Center","11:00 AM","2:00 PM","Adrian","","","","","CAA"\n' +
-    '"2027-01-12","Tuesday","BC Women\'s Hockey","vs Boston University","Kelley Rink at Conte Forum","TBD","TBD","Garrett","","","","","Women\'s Beanpot opening round - hosted at Kelley Rink"\n' +
+    '"2027-01-12","Tuesday","BC Women\'s Hockey","vs Boston University","Kelley Rink at Conte Forum","4:30 PM","7:30 PM","Garrett","","","","","Women\'s Beanpot opening round - hosted at Kelley Rink + NU-Harvard game same night (doubleheader)"\n' +
     '"2027-01-16","Saturday","BC Men\'s Hockey","vs Providence","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
+    '"2027-01-16","Saturday","BC Men\'s Basketball","vs Duke","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-01-18","Monday","Northeastern Men\'s Basketball","vs Monmouth","Cabot Center","11:00 AM","2:00 PM","Adrian","","","","","CAA - MLK Day"\n' +
+    '"2027-01-21","Thursday","BC Women\'s Basketball","vs Duke","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-01-22","Friday","BC Men\'s Hockey","vs New Hampshire","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
     '"2027-01-22","Friday","Northeastern Women\'s Basketball","vs Towson","Cabot Center","4:00 PM","7:00 PM","Adrian","","","","","CAA"\n' +
-    '"2027-01-22","Friday","BC Women\'s Hockey","vs New Hampshire","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2027-01-23","Saturday","BC Women\'s Hockey","vs New Hampshire","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Kadden","","","","","Moved from Jan 22 (BC plays at UNH that night)"\n' +
     '"2027-01-23","Saturday","Northeastern Men\'s Basketball","vs Stony Brook","Cabot Center","1:00 PM","4:00 PM","Kadden","","","","","CAA"\n' +
     '"2027-01-24","Sunday","Northeastern Women\'s Basketball","vs North Carolina A&T","Cabot Center","10:00 AM","1:00 PM","Anthony","","","","","CAA"\n' +
+    '"2027-01-24","Sunday","BC Women\'s Basketball","vs Georgia Tech","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-01-27","Wednesday","BC Men\'s Basketball","vs Louisville","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-01-28","Thursday","BC Women\'s Basketball","vs Virginia Tech","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-01-29","Friday","BC Men\'s Hockey","vs Boston University","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
-    '"2027-01-30","Saturday","Northeastern Women\'s Hockey","vs Holy Cross","Venue TBA","TBD","TBD","Adrian","","","","","Venue TBA - check NU sheet"\n' +
-    '"2027-02-04","Thursday","Northeastern Women\'s Hockey","vs New Hampshire","Venue TBA - Boston","TBD","TBD","Adrian","","","","","NU home rink TBA (Matthews demolished) - date per UNH release"\n' +
+    '"2027-01-28","Thursday","Northeastern Women\'s Hockey","vs Holy Cross","Bentley Arena","4:00 PM","7:00 PM","Adrian","","","","","Moved from Jan 30 - Bentley Arena, Waltham"\n' +
+    '"2027-02-04","Thursday","Northeastern Women\'s Hockey","vs New Hampshire","Walter Brown Arena (BU)","3:00 PM","6:00 PM","Adrian","","","","","Walter Brown Arena confirmed"\n' +
     '"2027-02-04","Thursday","Northeastern Men\'s Basketball","vs Drexel","Cabot Center","4:00 PM","7:00 PM","Garrett","","","","","CAA"\n' +
     '"2027-02-05","Friday","Northeastern Women\'s Basketball","vs Campbell","Cabot Center","4:00 PM","7:00 PM","Garrett","","","","","CAA"\n' +
     '"2027-02-06","Saturday","Northeastern Men\'s Basketball","vs North Carolina A&T","Cabot Center","11:00 AM","2:00 PM","Adrian","","","","","CAA"\n' +
-    '"2027-02-06","Saturday","BC Women\'s Hockey","vs Merrimack","Kelley Rink at Conte Forum","TBD","TBD","Anthony","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2027-02-06","Saturday","BC Men\'s Basketball","vs Notre Dame","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-02-07","Sunday","BC Women\'s Hockey","vs Merrimack","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Anthony","","","","","Moved from Feb 6"\n' +
     '"2027-02-07","Sunday","Northeastern Women\'s Basketball","vs Elon","Cabot Center","10:00 AM","1:00 PM","Anthony","","","","","CAA"\n' +
-    '"2027-02-11","Thursday","Northeastern Men\'s Basketball","vs Towson","Cabot Center","4:00 PM","7:00 PM","Adrian","","","","","CAA"\n' +
+    '"2027-02-09","Tuesday","BC Men\'s Basketball","vs Georgia Tech","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-02-11","Thursday","Northeastern Men\'s Basketball","vs Hofstra","Cabot Center","4:00 PM","7:00 PM","Adrian","","","","","Opponent changed per nuhuskies.com (Towson is now away Feb 13)"\n' +
     '"2027-02-12","Friday","BC Men\'s Hockey","vs UConn","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
-    '"2027-02-12","Friday","BC Women\'s Hockey","vs Providence","Kelley Rink at Conte Forum","TBD","TBD","Kadden","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2027-02-12","Friday","BC Women\'s Hockey","vs Providence","Kelley Rink at Conte Forum","11:00 AM","2:00 PM","Kadden","","","","",""\n' +
     '"2027-02-13","Saturday","Northeastern Women\'s Hockey","vs Boston College","Venue TBA","TBD","TBD","Garrett","","","","","Venue TBA - check NU sheet"\n' +
     '"2027-02-14","Sunday","Northeastern Women\'s Basketball","vs UNCW","Cabot Center","10:00 AM","1:00 PM","Adrian","","","","","CAA"\n' +
+    '"2027-02-14","Sunday","BC Women\'s Basketball","vs Clemson","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-02-16","Tuesday","BC Men\'s Basketball","vs SMU","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-02-18","Thursday","Northeastern Men\'s Basketball","vs Campbell","Cabot Center","4:00 PM","7:00 PM","Adrian","","","","","CAA"\n' +
+    '"2027-02-18","Thursday","BC Women\'s Basketball","vs Syracuse","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-02-20","Saturday","Northeastern Men\'s Basketball","vs Charleston","Cabot Center","11:00 AM","2:00 PM","Adrian","","","","","CAA"\n' +
     '"2027-02-20","Saturday","Northeastern Women\'s Hockey","vs UConn","Venue TBA","TBD","TBD","Garrett","","","","","Venue TBA - check NU sheet"\n' +
     '"2027-02-20","Saturday","BC Men\'s Hockey","vs Merrimack","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Adrian","","","","","Hockey East - Adrian: NU MBB 2PM then here 7PM"\n' +
-    '"2027-02-20","Saturday","BC Women\'s Hockey","vs Holy Cross","Kelley Rink at Conte Forum","TBD","TBD","Anthony","","","","","Hockey East - per HEA composite, not yet on bceagles.com"\n' +
+    '"2027-02-19","Friday","BC Women\'s Hockey","vs Holy Cross","Kelley Rink at Conte Forum","3:00 PM","6:00 PM","Anthony","","","","","Moved from Feb 20"\n' +
+    '"2027-02-20","Saturday","BC Men\'s Basketball","vs Virginia Tech","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
+    '"2027-02-21","Sunday","BC Women\'s Basketball","vs Notre Dame","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-02-26","Friday","BC Men\'s Hockey","vs Boston University","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
     '"2027-02-26","Friday","Northeastern Women\'s Basketball","vs Stony Brook","Cabot Center","4:00 PM","7:00 PM","Anthony","","","","","CAA"\n' +
+    '"2027-03-03","Wednesday","BC Men\'s Basketball","vs Florida State","Conte Forum","TBD","TBD","","","","","","ACC"\n' +
     '"2027-03-05","Friday","BC Men\'s Hockey","vs UMass","Kelley Rink at Conte Forum","4:00 PM","7:00 PM","Garrett","","","","","Hockey East"\n' +
     '"2027-03-06","Saturday","Northeastern Women\'s Basketball","vs Monmouth","Cabot Center","10:00 AM","1:00 PM","Adrian","","","","","CAA"\n' +
     '"2027-03-06","Saturday","Northeastern Men\'s Hockey","vs Boston College","Venue TBA","TBD","TBD","Garrett","","","","","Venue TBA (Matthews demolished)"\n';

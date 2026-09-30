@@ -10,7 +10,7 @@
 //   Tapping the widget opens the full schedule site.
 
 const SHEET_ID = "1f87gUR8wuRIukrP7muhQxP0tVa3Ja2RR9eg7xZoSZjk";
-const CSV_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:csv&headers=1";
 const SITE_URL = "https://garrettdavis0611.github.io/CJDproductions/";
 
 const TEAM_COLORS = [
